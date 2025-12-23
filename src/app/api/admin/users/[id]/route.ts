@@ -1,22 +1,71 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db/prisma';
-import { z } from 'zod';
-
-const updateUserSchema = z.object({
-  role: z.enum(['USER', 'ADMIN']).optional(),
-  subscriptionPlan: z.enum(['FREE', 'PRO', 'PREMIUM']).optional(),
-});
 
 /**
- * PATCH: Обновить пользователя
+ * GET: Получить информацию о конкретном пользователе
+ */
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const session = await auth();
+    
+    if (!session?.user?.id || session.user.role !== 'ADMIN') {
+      return NextResponse.json(
+        { error: 'Доступ запрещен' },
+        { status: 403 }
+      );
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: params.id },
+      include: {
+        subscription: true,
+        generations: {
+          take: 10,
+          orderBy: { createdAt: 'desc' },
+        },
+        edits: {
+          take: 10,
+          orderBy: { createdAt: 'desc' },
+        },
+        _count: {
+          select: {
+            generations: true,
+            edits: true,
+            templates: true,
+          },
+        },
+      },
+    });
+
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Пользователь не найден' },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({ user });
+  } catch (error) {
+    console.error('Get user error:', error);
+    return NextResponse.json(
+      { error: 'Ошибка получения пользователя' },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * PATCH: Обновить информацию о пользователе
  */
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params;
     const session = await auth();
     
     if (!session?.user?.id || session.user.role !== 'ADMIN') {
@@ -27,40 +76,18 @@ export async function PATCH(
     }
 
     const body = await request.json();
-    const validatedData = updateUserSchema.safeParse(body);
+    const { name, email, role } = body;
 
-    if (!validatedData.success) {
-      return NextResponse.json(
-        { 
-          error: 'Некорректные данные',
-          errors: validatedData.error.flatten().fieldErrors,
-        },
-        { status: 400 }
-      );
-    }
-
-    const { role, subscriptionPlan } = validatedData.data;
-
-    // Обновление роли
-    if (role) {
-      await prisma.user.update({
-        where: { id },
-        data: { role },
-      });
-    }
-
-    // Обновление подписки
-    if (subscriptionPlan) {
-      await prisma.subscription.update({
-        where: { userId: id },
-        data: { plan: subscriptionPlan },
-      });
-    }
-
-    return NextResponse.json({
-      success: true,
-      message: 'Пользователь обновлен',
+    const user = await prisma.user.update({
+      where: { id: params.id },
+      data: {
+        ...(name && { name }),
+        ...(email && { email }),
+        ...(role && { role }),
+      },
     });
+
+    return NextResponse.json({ user });
   } catch (error) {
     console.error('Update user error:', error);
     return NextResponse.json(
@@ -75,10 +102,9 @@ export async function PATCH(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params;
     const session = await auth();
     
     if (!session?.user?.id || session.user.role !== 'ADMIN') {
@@ -89,21 +115,18 @@ export async function DELETE(
     }
 
     // Нельзя удалить самого себя
-    if (id === session.user.id) {
+    if (session.user.id === params.id) {
       return NextResponse.json(
-        { error: 'Нельзя удалить самого себя' },
+        { error: 'Нельзя удалить свой аккаунт' },
         { status: 400 }
       );
     }
 
     await prisma.user.delete({
-      where: { id },
+      where: { id: params.id },
     });
 
-    return NextResponse.json({
-      success: true,
-      message: 'Пользователь удален',
-    });
+    return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Delete user error:', error);
     return NextResponse.json(
@@ -112,4 +135,3 @@ export async function DELETE(
     );
   }
 }
-
