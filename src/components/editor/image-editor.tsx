@@ -1,6 +1,8 @@
 'use client';
 
 import * as React from 'react';
+import * as fabric from 'fabric';
+import type { Rect } from 'fabric';
 import { useFabricCanvas } from '@/hooks/use-fabric-canvas';
 import { Toolbar } from './toolbar';
 import { FiltersPanel } from './filters-panel';
@@ -57,7 +59,7 @@ export function ImageEditor({
   } = useFabricCanvas({ width, height });
 
   const fileInputRef = React.useRef<HTMLInputElement>(null);
-  const [cropRect, setCropRect] = React.useState<fabric.Rect | null>(null);
+  const [cropRect, setCropRect] = React.useState<Rect | null>(null);
   const [isDrawingMode, setIsDrawingMode] = React.useState(false);
   const [layers, setLayers] = React.useState<any[]>([]);
   const [activeLayerId, setActiveLayerId] = React.useState<number | undefined>();
