@@ -13,9 +13,10 @@ const updateUserSchema = z.object({
  */
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const session = await auth();
     
     if (!session?.user?.id || session.user.role !== 'ADMIN') {
@@ -43,7 +44,7 @@ export async function PATCH(
     // Обновление роли
     if (role) {
       await prisma.user.update({
-        where: { id: params.id },
+        where: { id },
         data: { role },
       });
     }
@@ -51,7 +52,7 @@ export async function PATCH(
     // Обновление подписки
     if (subscriptionPlan) {
       await prisma.subscription.update({
-        where: { userId: params.id },
+        where: { userId: id },
         data: { plan: subscriptionPlan },
       });
     }
@@ -74,9 +75,10 @@ export async function PATCH(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const session = await auth();
     
     if (!session?.user?.id || session.user.role !== 'ADMIN') {
@@ -87,7 +89,7 @@ export async function DELETE(
     }
 
     // Нельзя удалить самого себя
-    if (params.id === session.user.id) {
+    if (id === session.user.id) {
       return NextResponse.json(
         { error: 'Нельзя удалить самого себя' },
         { status: 400 }
@@ -95,7 +97,7 @@ export async function DELETE(
     }
 
     await prisma.user.delete({
-      where: { id: params.id },
+      where: { id },
     });
 
     return NextResponse.json({

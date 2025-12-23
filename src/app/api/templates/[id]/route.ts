@@ -7,11 +7,12 @@ import { prisma } from '@/lib/db/prisma';
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const template = await prisma.template.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         user: {
           select: {
@@ -31,7 +32,7 @@ export async function GET(
 
     // Увеличить счетчик использований
     await prisma.template.update({
-      where: { id: params.id },
+      where: { id },
       data: { usageCount: { increment: 1 } },
     });
 
@@ -50,9 +51,10 @@ export async function GET(
  */
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const session = await auth();
     
     if (!session?.user?.id) {
@@ -63,7 +65,7 @@ export async function PUT(
     }
 
     const template = await prisma.template.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!template) {
@@ -84,7 +86,7 @@ export async function PUT(
     const body = await request.json();
     
     const updatedTemplate = await prisma.template.update({
-      where: { id: params.id },
+      where: { id },
       data: body,
     });
 
@@ -106,9 +108,10 @@ export async function PUT(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const session = await auth();
     
     if (!session?.user?.id) {
@@ -119,7 +122,7 @@ export async function DELETE(
     }
 
     const template = await prisma.template.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!template) {
@@ -138,7 +141,7 @@ export async function DELETE(
     }
 
     await prisma.template.delete({
-      where: { id: params.id },
+      where: { id },
     });
 
     return NextResponse.json({

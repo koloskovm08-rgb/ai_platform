@@ -7,9 +7,10 @@ import { prisma } from '@/lib/db/prisma';
  */
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id: generationId } = await params;
     const session = await auth();
     
     if (!session?.user?.id) {
@@ -20,7 +21,6 @@ export async function PATCH(
     }
 
     const userId = session.user.id;
-    const generationId = params.id;
 
     // Проверка, что генерация принадлежит пользователю
     const generation = await prisma.generation.findFirst({
