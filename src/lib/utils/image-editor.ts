@@ -1,5 +1,5 @@
 import * as fabric from 'fabric';
-import type { Canvas, Rect, Object, Image } from 'fabric';
+import type { Canvas, Rect, Object as FabricObject, Image } from 'fabric';
 import { saveAs } from 'file-saver';
 
 /**
@@ -473,7 +473,7 @@ export function getLayers(canvas: Canvas) {
 /**
  * Переместить слой вверх
  */
-export function moveLayerUp(canvas: Canvas, obj: Object) {
+export function moveLayerUp(canvas: Canvas, obj: FabricObject) {
   canvas.bringForward(obj);
   canvas.renderAll();
 }
@@ -481,7 +481,7 @@ export function moveLayerUp(canvas: Canvas, obj: Object) {
 /**
  * Переместить слой вниз
  */
-export function moveLayerDown(canvas: Canvas, obj: Object) {
+export function moveLayerDown(canvas: Canvas, obj: FabricObject) {
   canvas.sendBackwards(obj);
   canvas.renderAll();
 }
@@ -489,7 +489,7 @@ export function moveLayerDown(canvas: Canvas, obj: Object) {
 /**
  * Переместить слой наверх (на передний план)
  */
-export function moveLayerToTop(canvas: Canvas, obj: Object) {
+export function moveLayerToTop(canvas: Canvas, obj: FabricObject) {
   canvas.bringToFront(obj);
   canvas.renderAll();
 }
@@ -497,7 +497,7 @@ export function moveLayerToTop(canvas: Canvas, obj: Object) {
 /**
  * Переместить слой вниз (на задний план)
  */
-export function moveLayerToBottom(canvas: Canvas, obj: Object) {
+export function moveLayerToBottom(canvas: Canvas, obj: FabricObject) {
   canvas.sendToBack(obj);
   canvas.renderAll();
 }
@@ -505,7 +505,7 @@ export function moveLayerToBottom(canvas: Canvas, obj: Object) {
 /**
  * Показать/скрыть слой
  */
-export function toggleLayerVisibility(canvas: Canvas, obj: Object) {
+export function toggleLayerVisibility(canvas: Canvas, obj: FabricObject) {
   obj.visible = !obj.visible;
   canvas.renderAll();
 }
@@ -513,7 +513,7 @@ export function toggleLayerVisibility(canvas: Canvas, obj: Object) {
 /**
  * Удалить слой
  */
-export function deleteLayer(canvas: Canvas, obj: Object) {
+export function deleteLayer(canvas: Canvas, obj: FabricObject) {
   canvas.remove(obj);
   canvas.renderAll();
 }
@@ -521,7 +521,7 @@ export function deleteLayer(canvas: Canvas, obj: Object) {
 /**
  * Выбрать слой
  */
-export function selectLayer(canvas: Canvas, obj: Object) {
+export function selectLayer(canvas: Canvas, obj: FabricObject) {
   canvas.setActiveObject(obj);
   canvas.renderAll();
 }

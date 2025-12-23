@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import type { Object } from 'fabric';
+import type { Object as FabricObject } from 'fabric';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
@@ -21,7 +21,7 @@ interface Layer {
   type?: string;
   visible: boolean;
   name: string;
-  object: Object;
+  object: FabricObject;
 }
 
 interface LayersPanelProps {
