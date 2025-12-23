@@ -115,6 +115,13 @@ export async function POST(request: NextRequest) {
             });
           }
 
+          // Получаем URL изображения из результата
+          const imageUrl = result.images?.[0] || result.imageUrl || '';
+          
+          if (!imageUrl) {
+            throw new Error('Не удалось получить URL изображения');
+          }
+
           // Сохраняем в БД
           const generation = await prisma.generation.create({
             data: {
@@ -125,8 +132,8 @@ export async function POST(request: NextRequest) {
               width,
               height,
               numOutputs: 1,
-              imageUrl: result.imageUrl,
-              thumbnailUrl: result.imageUrl,
+              imageUrl,
+              thumbnailUrl: imageUrl,
               guidanceScale,
               steps,
             },

@@ -11,6 +11,12 @@ interface DialogProps {
   children: React.ReactNode;
 }
 
+// Context for Dialog state
+const DialogContext = React.createContext<{
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+} | null>(null);
+
 export function Dialog({ open, onOpenChange, children }: DialogProps) {
   React.useEffect(() => {
     if (open) {
@@ -24,21 +30,24 @@ export function Dialog({ open, onOpenChange, children }: DialogProps) {
     };
   }, [open]);
 
-  if (!open) return null;
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      {/* Backdrop */}
-      <div
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm"
-        onClick={() => onOpenChange(false)}
-      />
-      
-      {/* Dialog */}
-      <div className="relative z-50 w-full max-w-2xl max-h-[90vh] overflow-auto rounded-lg border bg-background shadow-lg">
-        {children}
-      </div>
-    </div>
+    <DialogContext.Provider value={{ open, onOpenChange }}>
+      {open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => onOpenChange(false)}
+          />
+          
+          {/* Dialog */}
+          <div className="relative z-50 w-full max-w-2xl max-h-[90vh] overflow-auto rounded-lg border bg-background shadow-lg">
+            {children}
+          </div>
+        </div>
+      )}
+      {!open && children}
+    </DialogContext.Provider>
   );
 }
 
@@ -113,6 +122,37 @@ export function DialogFooter({
       className={cn('flex items-center justify-end gap-2 mt-6', className)}
       {...props}
     />
+  );
+}
+
+// DialogTrigger component
+export function DialogTrigger({
+  asChild,
+  children,
+  ...props
+}: React.ButtonHTMLAttributes<HTMLButtonElement> & { asChild?: boolean }) {
+  const context = React.useContext(DialogContext);
+  
+  if (asChild && React.isValidElement(children)) {
+    return React.cloneElement(children, {
+      ...props,
+      onClick: (e: any) => {
+        children.props.onClick?.(e);
+        context?.onOpenChange(true);
+      },
+    } as any);
+  }
+  
+  return (
+    <button
+      {...props}
+      onClick={(e) => {
+        props.onClick?.(e);
+        context?.onOpenChange(true);
+      }}
+    >
+      {children}
+    </button>
   );
 }
 
