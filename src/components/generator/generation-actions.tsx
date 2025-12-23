@@ -62,6 +62,8 @@ export function GenerationActions({
   );
   const [copied, setCopied] = React.useState(false);
   const [upscaleScale, setUpscaleScale] = React.useState<'2' | '4'>('2');
+  const [isShareDialogOpen, setIsShareDialogOpen] = React.useState(false);
+  const [isUpscaleDialogOpen, setIsUpscaleDialogOpen] = React.useState(false);
 
   const handleFavorite = async () => {
     setIsFavoriteLoading(true);
@@ -208,7 +210,7 @@ export function GenerationActions({
       </Button>
 
       {/* Поделиться */}
-      <Dialog>
+      <Dialog open={isShareDialogOpen} onOpenChange={setIsShareDialogOpen}>
         <DialogTrigger asChild>
           <Button
             variant="ghost"
@@ -288,7 +290,7 @@ export function GenerationActions({
 
       {/* Upscale */}
       {!upscaledUrl && (
-        <Dialog>
+        <Dialog open={isUpscaleDialogOpen} onOpenChange={setIsUpscaleDialogOpen}>
           <DialogTrigger asChild>
             <Button
               variant="ghost"
