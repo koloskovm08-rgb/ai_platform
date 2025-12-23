@@ -30,7 +30,7 @@ interface GradientOrb {
 export function AnimatedBackground() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { resolvedTheme } = useTheme();
-  const animationRef = useRef<number>();
+  const animationRef = useRef<number | undefined>(undefined);
   const particlesRef = useRef<Particle[]>([]);
   const orbsRef = useRef<GradientOrb[]>([]);
   const [shouldAnimate, setShouldAnimate] = useState(true);
