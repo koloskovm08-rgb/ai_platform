@@ -159,8 +159,8 @@
 DATABASE_URL="postgresql://..."
 
 # NextAuth (обязательно)
-NEXTAUTH_URL="https://ваш-домен.vercel.app"
-NEXTAUTH_SECRET="новый-секрет-для-продакшена"
+NEXTAUTH_URL="https://ai-platform68.vercel.app/"
+NEXTAUTH_SECRET="N2MClAvkug8DShL1ZmaGcyPdBxo9FfYU"
 
 # AI API (хотя бы один)
 REPLICATE_API_TOKEN="r8_..."
