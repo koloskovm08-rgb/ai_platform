@@ -1,0 +1,1 @@
+DATABASE_URL="postgresql://user:celnumog1@localhost:5432/ai_platform"
