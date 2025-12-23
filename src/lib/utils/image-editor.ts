@@ -1,11 +1,12 @@
 import * as fabric from 'fabric';
+import type { Canvas, Rect, Object, Image } from 'fabric';
 import { saveAs } from 'file-saver';
 
 /**
  * Загрузить изображение на canvas
  */
 export function loadImageToCanvas(
-  canvas: fabric.Canvas,
+  canvas: Canvas,
   imageUrl: string,
   callback?: () => void
 ) {
@@ -41,7 +42,7 @@ export function loadImageToCanvas(
 /**
  * Добавить текст на canvas
  */
-export function addText(canvas: fabric.Canvas, text: string = 'Текст') {
+export function addText(canvas: Canvas, text: string = 'Текст') {
   const textObject = new fabric.IText(text, {
     left: 100,
     top: 100,
@@ -58,7 +59,7 @@ export function addText(canvas: fabric.Canvas, text: string = 'Текст') {
 /**
  * Добавить прямоугольник
  */
-export function addRectangle(canvas: fabric.Canvas) {
+export function addRectangle(canvas: Canvas) {
   const rect = new fabric.Rect({
     left: 100,
     top: 100,
@@ -77,7 +78,7 @@ export function addRectangle(canvas: fabric.Canvas) {
 /**
  * Добавить круг
  */
-export function addCircle(canvas: fabric.Canvas) {
+export function addCircle(canvas: Canvas) {
   const circle = new fabric.Circle({
     left: 100,
     top: 100,
@@ -95,7 +96,7 @@ export function addCircle(canvas: fabric.Canvas) {
 /**
  * Добавить треугольник
  */
-export function addTriangle(canvas: fabric.Canvas) {
+export function addTriangle(canvas: Canvas) {
   const triangle = new fabric.Triangle({
     left: 100,
     top: 100,
@@ -114,7 +115,7 @@ export function addTriangle(canvas: fabric.Canvas) {
 /**
  * Удалить выбранный объект
  */
-export function deleteSelected(canvas: fabric.Canvas) {
+export function deleteSelected(canvas: Canvas) {
   const activeObjects = canvas.getActiveObjects();
   if (activeObjects.length) {
     canvas.remove(...activeObjects);
@@ -127,11 +128,11 @@ export function deleteSelected(canvas: fabric.Canvas) {
  * Применить фильтр к изображению
  */
 export function applyFilter(
-  canvas: fabric.Canvas,
+  canvas: Canvas,
   filterType: string,
   value?: number
 ) {
-  const bgImage = canvas.backgroundImage as fabric.Image;
+  const bgImage = canvas.backgroundImage as Image;
   if (!bgImage) return;
 
   let filter: fabric.IBaseFilter | null = null;
@@ -172,8 +173,8 @@ export function applyFilter(
 /**
  * Сбросить все фильтры
  */
-export function clearFilters(canvas: fabric.Canvas) {
-  const bgImage = canvas.backgroundImage as fabric.Image;
+export function clearFilters(canvas: Canvas) {
+  const bgImage = canvas.backgroundImage as Image;
   if (!bgImage) return;
 
   bgImage.filters = [];
@@ -184,7 +185,7 @@ export function clearFilters(canvas: fabric.Canvas) {
 /**
  * Повернуть canvas на 90 градусов
  */
-export function rotateCanvas(canvas: fabric.Canvas, angle: number = 90) {
+export function rotateCanvas(canvas: Canvas, angle: number = 90) {
   const objects = canvas.getObjects();
   const center = canvas.getCenter();
 
@@ -218,7 +219,7 @@ export function rotateCanvas(canvas: fabric.Canvas, angle: number = 90) {
 /**
  * Отразить canvas по горизонтали
  */
-export function flipHorizontal(canvas: fabric.Canvas) {
+export function flipHorizontal(canvas: Canvas) {
   const objects = canvas.getObjects();
   const center = canvas.getCenter();
 
@@ -237,7 +238,7 @@ export function flipHorizontal(canvas: fabric.Canvas) {
  * Экспортировать canvas как изображение
  */
 export function exportAsImage(
-  canvas: fabric.Canvas,
+  canvas: Canvas,
   format: 'png' | 'jpeg' | 'svg' = 'png',
   filename: string = 'image'
 ) {
@@ -263,14 +264,14 @@ export function exportAsImage(
 /**
  * Получить JSON представление canvas
  */
-export function exportAsJSON(canvas: fabric.Canvas) {
+export function exportAsJSON(canvas: Canvas) {
   return JSON.stringify(canvas.toJSON());
 }
 
 /**
  * Загрузить canvas из JSON
  */
-export function loadFromJSON(canvas: fabric.Canvas, json: string) {
+export function loadFromJSON(canvas: Canvas, json: string) {
   canvas.loadFromJSON(json, () => {
     canvas.renderAll();
   });
@@ -284,7 +285,7 @@ export function loadFromJSON(canvas: fabric.Canvas, json: string) {
  * Включить режим обрезки (crop)
  * Создаёт выделяемую область для обрезки
  */
-export function enableCropMode(canvas: fabric.Canvas): fabric.Rect {
+export function enableCropMode(canvas: Canvas): Rect {
   // Создаём полупрозрачный прямоугольник для выделения области
   const cropRect = new fabric.Rect({
     left: 50,
@@ -314,7 +315,7 @@ export function enableCropMode(canvas: fabric.Canvas): fabric.Rect {
 /**
  * Применить обрезку
  */
-export function applyCrop(canvas: fabric.Canvas, cropRect: fabric.Rect) {
+export function applyCrop(canvas: Canvas, cropRect: Rect) {
   if (!cropRect) return;
 
   const left = cropRect.left || 0;
@@ -352,7 +353,7 @@ export function applyCrop(canvas: fabric.Canvas, cropRect: fabric.Rect) {
 /**
  * Отменить режим обрезки
  */
-export function cancelCrop(canvas: fabric.Canvas, cropRect: fabric.Rect) {
+export function cancelCrop(canvas: Canvas, cropRect: Rect) {
   if (cropRect) {
     canvas.remove(cropRect);
     canvas.renderAll();
@@ -363,7 +364,7 @@ export function cancelCrop(canvas: fabric.Canvas, cropRect: fabric.Rect) {
  * Включить режим свободного рисования (кисть)
  */
 export function enableDrawingMode(
-  canvas: fabric.Canvas,
+  canvas: Canvas,
   options?: {
     color?: string;
     width?: number;
@@ -377,7 +378,7 @@ export function enableDrawingMode(
 /**
  * Выключить режим рисования
  */
-export function disableDrawingMode(canvas: fabric.Canvas) {
+export function disableDrawingMode(canvas: Canvas) {
   canvas.isDrawingMode = false;
 }
 
@@ -385,7 +386,7 @@ export function disableDrawingMode(canvas: fabric.Canvas) {
  * Изменить параметры кисти
  */
 export function setBrushSettings(
-  canvas: fabric.Canvas,
+  canvas: Canvas,
   color?: string,
   width?: number
 ) {
@@ -401,7 +402,7 @@ export function setBrushSettings(
  * Добавить прямоугольник с градиентом
  */
 export function addRectangleWithGradient(
-  canvas: fabric.Canvas,
+  canvas: Canvas,
   colorStart: string = '#3b82f6',
   colorEnd: string = '#8b5cf6'
 ) {
@@ -431,7 +432,7 @@ export function addRectangleWithGradient(
  * Добавить круг с градиентом
  */
 export function addCircleWithGradient(
-  canvas: fabric.Canvas,
+  canvas: Canvas,
   colorStart: string = '#ec4899',
   colorEnd: string = '#f97316'
 ) {
@@ -459,7 +460,7 @@ export function addCircleWithGradient(
 /**
  * Получить список всех объектов (слоёв) на canvas
  */
-export function getLayers(canvas: fabric.Canvas) {
+export function getLayers(canvas: Canvas) {
   return canvas.getObjects().map((obj, index) => ({
     id: index,
     type: obj.type,
@@ -472,7 +473,7 @@ export function getLayers(canvas: fabric.Canvas) {
 /**
  * Переместить слой вверх
  */
-export function moveLayerUp(canvas: fabric.Canvas, obj: fabric.Object) {
+export function moveLayerUp(canvas: Canvas, obj: Object) {
   canvas.bringForward(obj);
   canvas.renderAll();
 }
@@ -480,7 +481,7 @@ export function moveLayerUp(canvas: fabric.Canvas, obj: fabric.Object) {
 /**
  * Переместить слой вниз
  */
-export function moveLayerDown(canvas: fabric.Canvas, obj: fabric.Object) {
+export function moveLayerDown(canvas: Canvas, obj: Object) {
   canvas.sendBackwards(obj);
   canvas.renderAll();
 }
@@ -488,7 +489,7 @@ export function moveLayerDown(canvas: fabric.Canvas, obj: fabric.Object) {
 /**
  * Переместить слой наверх (на передний план)
  */
-export function moveLayerToTop(canvas: fabric.Canvas, obj: fabric.Object) {
+export function moveLayerToTop(canvas: Canvas, obj: Object) {
   canvas.bringToFront(obj);
   canvas.renderAll();
 }
@@ -496,7 +497,7 @@ export function moveLayerToTop(canvas: fabric.Canvas, obj: fabric.Object) {
 /**
  * Переместить слой вниз (на задний план)
  */
-export function moveLayerToBottom(canvas: fabric.Canvas, obj: fabric.Object) {
+export function moveLayerToBottom(canvas: Canvas, obj: Object) {
   canvas.sendToBack(obj);
   canvas.renderAll();
 }
@@ -504,7 +505,7 @@ export function moveLayerToBottom(canvas: fabric.Canvas, obj: fabric.Object) {
 /**
  * Показать/скрыть слой
  */
-export function toggleLayerVisibility(canvas: fabric.Canvas, obj: fabric.Object) {
+export function toggleLayerVisibility(canvas: Canvas, obj: Object) {
   obj.visible = !obj.visible;
   canvas.renderAll();
 }
@@ -512,7 +513,7 @@ export function toggleLayerVisibility(canvas: fabric.Canvas, obj: fabric.Object)
 /**
  * Удалить слой
  */
-export function deleteLayer(canvas: fabric.Canvas, obj: fabric.Object) {
+export function deleteLayer(canvas: Canvas, obj: Object) {
   canvas.remove(obj);
   canvas.renderAll();
 }
@@ -520,7 +521,7 @@ export function deleteLayer(canvas: fabric.Canvas, obj: fabric.Object) {
 /**
  * Выбрать слой
  */
-export function selectLayer(canvas: fabric.Canvas, obj: fabric.Object) {
+export function selectLayer(canvas: Canvas, obj: Object) {
   canvas.setActiveObject(obj);
   canvas.renderAll();
 }

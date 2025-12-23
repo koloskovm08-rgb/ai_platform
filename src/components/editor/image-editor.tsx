@@ -1,7 +1,6 @@
 'use client';
 
 import * as React from 'react';
-import * as fabric from 'fabric';
 import type { Rect } from 'fabric';
 import { useFabricCanvas } from '@/hooks/use-fabric-canvas';
 import { Toolbar } from './toolbar';

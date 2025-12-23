@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import * as fabric from 'fabric';
+import type { Canvas } from 'fabric';
 
 export interface UseFabricCanvasOptions {
   width?: number;
@@ -13,7 +14,7 @@ export function useFabricCanvas(options: UseFabricCanvasOptions = {}) {
   const { width = 800, height = 600, backgroundColor = '#ffffff' } = options;
   
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [canvas, setCanvas] = useState<fabric.Canvas | null>(null);
+  const [canvas, setCanvas] = useState<Canvas | null>(null);
   const [history, setHistory] = useState<string[]>([]);
   const [historyStep, setHistoryStep] = useState(-1);
 
@@ -35,7 +36,7 @@ export function useFabricCanvas(options: UseFabricCanvasOptions = {}) {
     };
   }, []);
 
-  const saveHistory = (canvas: fabric.Canvas) => {
+  const saveHistory = (canvas: Canvas) => {
     const json = JSON.stringify(canvas.toJSON());
     setHistory((prev) => {
       const newHistory = prev.slice(0, historyStep + 1);
