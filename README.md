@@ -328,6 +328,35 @@ npm run test
 npm run test:e2e
 ```
 
+## 🚀 Деплой на Vercel
+
+### Быстрый старт:
+
+1. **Импортируйте проект в Vercel:**
+   - Перейдите на https://vercel.com
+   - New Project → Import Git Repository
+   - Выберите `ai_platform`
+
+2. **Настройте Environment Variables:**
+   - DATABASE_URL (PostgreSQL)
+   - NEXTAUTH_SECRET
+   - NEXTAUTH_URL (добавить после первого деплоя)
+   - OPENAI_API_KEY или REPLICATE_API_TOKEN
+
+3. **Deploy!**
+   - Vercel автоматически соберёт и задеплоит проект
+
+### Детальные инструкции:
+
+Смотрите **`VERCEL_DEPLOYMENT_GUIDE.md`** и **`DEPLOY_CHECKLIST.md`**
+
+### Рекомендуемые сервисы для production:
+
+- **База данных:** Vercel Postgres, Neon, Supabase
+- **Email:** Resend
+- **Хранилище:** Cloudinary
+- **Мониторинг:** Sentry, Vercel Analytics
+
 ## 📝 Лицензия
 
 MIT

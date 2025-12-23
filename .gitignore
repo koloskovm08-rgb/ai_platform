@@ -26,8 +26,10 @@ yarn-debug.log*
 yarn-error.log*
 
 # local env files
-.env*.local
 .env
+.env*.local
+.env.development
+.env.production
 
 # vercel
 .vercel
@@ -37,9 +39,15 @@ yarn-error.log*
 next-env.d.ts
 
 # prisma
-prisma/migrations
+prisma/dev.db
+prisma/dev.db-journal
 
 # IDE
-.vscode
-.idea
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
 
+# OS
+Thumbs.db
