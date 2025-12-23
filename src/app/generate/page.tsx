@@ -200,7 +200,7 @@ export default function GeneratePage() {
                     Пока нет сгенерированных изображений
                   </h3>
                   <p className="text-sm text-muted-foreground">
-                    Заполните форму слева и нажмите "Сгенерировать изображение"
+                    Заполните форму слева и нажмите &quot;Сгенерировать изображение&quot;
                   </p>
                 </div>
               </CardContent>

@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { Download, Loader2, Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -97,7 +98,7 @@ export default function SharePage() {
               <h2 className="text-2xl font-bold mb-2">Изображение не найдено</h2>
               <p className="text-muted-foreground mb-4">{error || 'Ссылка недействительна или изображение было удалено'}</p>
               <Button asChild>
-                <a href="/">На главную</a>
+                <Link href="/">На главную</Link>
               </Button>
             </div>
           </CardContent>
