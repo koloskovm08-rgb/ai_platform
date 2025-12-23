@@ -84,12 +84,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Типы результатов генерации
+    type GenerationResult = {
+      success: boolean;
+      images?: string[];
+      model?: string;
+      error?: string;
+    };
+
     // Генерируем изображения для всех промптов параллельно
     const results = await Promise.allSettled(
       prompts.map(async (prompt) => {
         try {
           // Генерация
-          let result;
+          let result: GenerationResult;
 
           if (model === 'DALL_E_3') {
             let size: '1024x1024' | '1792x1024' | '1024x1792' = '1024x1024';
@@ -116,11 +124,11 @@ export async function POST(request: NextRequest) {
           }
 
           // Получаем URL изображения из результата
-          const imageUrl = result.images?.[0] || result.imageUrl || '';
-          
-          if (!imageUrl) {
-            throw new Error('Не удалось получить URL изображения');
+          if (!result.success || !result.images || result.images.length === 0) {
+            throw new Error(result.error || 'Не удалось получить URL изображения');
           }
+          
+          const imageUrl = result.images[0];
 
           // Сохраняем в БД
           const generation = await prisma.generation.create({
