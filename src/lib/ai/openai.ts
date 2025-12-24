@@ -39,7 +39,7 @@ export async function generateWithDALLE3(params: OpenAIGenerationParams) {
         n: 1,
       });
 
-      if (response.data[0]?.url) {
+      if (response.data?.[0]?.url) {
         images.push(response.data[0].url);
       }
     }
@@ -88,7 +88,7 @@ export async function editImageWithDALLE(
 
     return {
       success: true,
-      imageUrl: response.data[0]?.url || '',
+      imageUrl: response.data?.[0]?.url || '',
     };
   } catch (error) {
     console.error('OpenAI edit error:', error);
