@@ -3,19 +3,15 @@ import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db/prisma';
 import { randomBytes } from 'crypto';
 
-type RouteContext = {
-  params: Promise<{ id: string }>;
-};
-
 /**
  * PATCH: Включить/выключить публичный доступ к генерации
  */
 export async function PATCH(
   request: NextRequest,
-  context: RouteContext
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id: generationId } = await context.params;
+    const { id: generationId } = await params;
     const session = await auth();
     
     if (!session?.user?.id) {
