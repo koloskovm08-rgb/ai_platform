@@ -2,15 +2,19 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db/prisma';
 
+type RouteContext = {
+  params: Promise<{ id: string }>;
+};
+
 /**
  * GET: Получить шаблон по ID
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  context: RouteContext
 ) {
   try {
-    const { id } = await params;
+    const { id } = await context.params;
     const template = await prisma.template.findUnique({
       where: { id },
       include: {
@@ -51,10 +55,10 @@ export async function GET(
  */
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  context: RouteContext
 ) {
   try {
-    const { id } = await params;
+    const { id } = await context.params;
     const session = await auth();
     
     if (!session?.user?.id) {
@@ -108,10 +112,10 @@ export async function PUT(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  context: RouteContext
 ) {
   try {
-    const { id } = await params;
+    const { id } = await context.params;
     const session = await auth();
     
     if (!session?.user?.id) {

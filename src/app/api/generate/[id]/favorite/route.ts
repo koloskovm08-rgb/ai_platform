@@ -2,15 +2,19 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db/prisma';
 
+type RouteContext = {
+  params: Promise<{ id: string }>;
+};
+
 /**
  * PATCH: Добавить/убрать генерацию из избранного
  */
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  context: RouteContext
 ) {
   try {
-    const { id: generationId } = await params;
+    const { id: generationId } = await context.params;
     const session = await auth();
     
     if (!session?.user?.id) {

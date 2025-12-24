@@ -2,15 +2,19 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db/prisma';
 
+type RouteContext = {
+  params: Promise<{ id: string }>;
+};
+
 /**
  * GET: Получить информацию о конкретном пользователе
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  context: RouteContext
 ) {
   try {
-    const { id } = await params;
+    const { id } = await context.params;
     const session = await auth();
     
     if (!session?.user?.id || session.user.role !== 'ADMIN') {
@@ -64,10 +68,10 @@ export async function GET(
  */
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  context: RouteContext
 ) {
   try {
-    const { id } = await params;
+    const { id } = await context.params;
     const session = await auth();
     
     if (!session?.user?.id || session.user.role !== 'ADMIN') {
@@ -104,10 +108,10 @@ export async function PATCH(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  context: RouteContext
 ) {
   try {
-    const { id } = await params;
+    const { id } = await context.params;
     const session = await auth();
     
     if (!session?.user?.id || session.user.role !== 'ADMIN') {

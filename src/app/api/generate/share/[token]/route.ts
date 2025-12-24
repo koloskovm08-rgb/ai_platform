@@ -1,15 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 
+type RouteContext = {
+  params: Promise<{ token: string }>;
+};
+
 /**
  * GET: Получить публичное изображение по токену
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ token: string }> }
+  context: RouteContext
 ) {
   try {
-    const { token } = await params;
+    const { token } = await context.params;
 
     const generation = await prisma.generation.findFirst({
       where: {
