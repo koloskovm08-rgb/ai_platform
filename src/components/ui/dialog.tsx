@@ -137,7 +137,8 @@ export function DialogTrigger({
     return React.cloneElement(children, {
       ...props,
       onClick: (e: any) => {
-        children.props.onClick?.(e);
+        const childProps = children.props as any;
+        childProps.onClick?.(e);
         context?.onOpenChange(true);
       },
     } as any);
