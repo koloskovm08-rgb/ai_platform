@@ -13,7 +13,7 @@ const loginSchema = z.object({
 });
 
 export const authConfig: NextAuthConfig = {
-  adapter: PrismaAdapter(prisma),
+  adapter: PrismaAdapter(prisma) as any,
   session: {
     strategy: 'jwt',
   },
@@ -36,7 +36,7 @@ export const authConfig: NextAuthConfig = {
         email: { label: 'Email', type: 'email' },
         password: { label: 'Password', type: 'password' },
       },
-      async authorize(credentials: Record<string, string> | undefined) {
+      async authorize(credentials: any) {
         try {
           // Валидация входных данных
           const validatedFields = loginSchema.safeParse(credentials);

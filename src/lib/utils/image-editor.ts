@@ -1,5 +1,5 @@
 import * as fabric from 'fabric';
-import type { Canvas, Rect, Object as FabricObject, Image } from 'fabric';
+import type { Canvas, Rect, FabricObject, FabricImage } from 'fabric';
 import { saveAs } from 'file-saver';
 
 /**
@@ -10,33 +10,31 @@ export function loadImageToCanvas(
   imageUrl: string,
   callback?: () => void
 ) {
-  fabric.Image.fromURL(
+  fabric.FabricImage.fromURL(
     imageUrl,
-    (img) => {
-      // Масштабировать изображение под размер canvas
-      const canvasWidth = canvas.getWidth();
-      const canvasHeight = canvas.getHeight();
-      const imgWidth = img.width || 0;
-      const imgHeight = img.height || 0;
-
-      const scaleX = canvasWidth / imgWidth;
-      const scaleY = canvasHeight / imgHeight;
-      const scale = Math.min(scaleX, scaleY);
-
-      img.scale(scale);
-      img.set({
-        left: (canvasWidth - imgWidth * scale) / 2,
-        top: (canvasHeight - imgHeight * scale) / 2,
-        selectable: false,
-      });
-
-      canvas.setBackgroundImage(img, () => {
-        canvas.renderAll();
-        callback?.();
-      });
-    },
     { crossOrigin: 'anonymous' }
-  );
+  ).then((img) => {
+    // Масштабировать изображение под размер canvas
+    const canvasWidth = canvas.getWidth();
+    const canvasHeight = canvas.getHeight();
+    const imgWidth = img.width || 0;
+    const imgHeight = img.height || 0;
+
+    const scaleX = canvasWidth / imgWidth;
+    const scaleY = canvasHeight / imgHeight;
+    const scale = Math.min(scaleX, scaleY);
+
+    img.scale(scale);
+    img.set({
+      left: (canvasWidth - imgWidth * scale) / 2,
+      top: (canvasHeight - imgHeight * scale) / 2,
+      selectable: false,
+    });
+
+    canvas.backgroundImage = img;
+    canvas.renderAll();
+    callback?.();
+  });
 }
 
 /**
@@ -132,38 +130,38 @@ export function applyFilter(
   filterType: string,
   value?: number
 ) {
-  const bgImage = canvas.backgroundImage as Image;
+  const bgImage = canvas.backgroundImage as FabricImage;
   if (!bgImage) return;
 
-  let filter: fabric.IBaseFilter | null = null;
+  let filter: any = null;
 
   switch (filterType) {
     case 'grayscale':
-      filter = new fabric.Image.filters.Grayscale();
+      filter = new fabric.filters.Grayscale();
       break;
     case 'sepia':
-      filter = new fabric.Image.filters.Sepia();
+      filter = new fabric.filters.Sepia();
       break;
     case 'invert':
-      filter = new fabric.Image.filters.Invert();
+      filter = new fabric.filters.Invert();
       break;
     case 'brightness':
-      filter = new fabric.Image.filters.Brightness({ brightness: value || 0 });
+      filter = new fabric.filters.Brightness({ brightness: value || 0 });
       break;
     case 'contrast':
-      filter = new fabric.Image.filters.Contrast({ contrast: value || 0 });
+      filter = new fabric.filters.Contrast({ contrast: value || 0 });
       break;
     case 'blur':
-      filter = new fabric.Image.filters.Blur({ blur: value || 0 });
+      filter = new fabric.filters.Blur({ blur: value || 0 });
       break;
     case 'pixelate':
-      filter = new fabric.Image.filters.Pixelate({ blocksize: value || 4 });
+      filter = new fabric.filters.Pixelate({ blocksize: value || 4 });
       break;
     default:
       break;
   }
 
-  if (filter) {
+  if (filter && bgImage.filters) {
     bgImage.filters = [filter];
     bgImage.applyFilters();
     canvas.renderAll();
@@ -174,8 +172,8 @@ export function applyFilter(
  * Сбросить все фильтры
  */
 export function clearFilters(canvas: Canvas) {
-  const bgImage = canvas.backgroundImage as Image;
-  if (!bgImage) return;
+  const bgImage = canvas.backgroundImage as FabricImage;
+  if (!bgImage || !bgImage.filters) return;
 
   bgImage.filters = [];
   bgImage.applyFilters();
@@ -250,6 +248,7 @@ export function exportAsImage(
     const dataURL = canvas.toDataURL({
       format,
       quality: 0.9,
+      multiplier: 1,
     });
 
     const link = document.createElement('a');
@@ -333,9 +332,9 @@ export function applyCrop(canvas: Canvas, cropRect: Rect) {
 
   // Копируем обрезанную область
   const dataURL = canvas.toDataURL();
-  const img = new Image();
+  const img = new window.Image();
   img.onload = () => {
-    tempCtx.drawImage(img, left, top, width, height, 0, 0, width, height);
+    tempCtx.drawImage(img as any, left, top, width, height, 0, 0, width, height);
     const croppedDataURL = tempCanvas.toDataURL();
 
     // Очищаем canvas и загружаем обрезанное изображение
@@ -371,8 +370,10 @@ export function enableDrawingMode(
   }
 ) {
   canvas.isDrawingMode = true;
-  canvas.freeDrawingBrush.color = options?.color || '#000000';
-  canvas.freeDrawingBrush.width = options?.width || 5;
+  if (canvas.freeDrawingBrush) {
+    canvas.freeDrawingBrush.color = options?.color || '#000000';
+    canvas.freeDrawingBrush.width = options?.width || 5;
+  }
 }
 
 /**
@@ -390,11 +391,13 @@ export function setBrushSettings(
   color?: string,
   width?: number
 ) {
-  if (color) {
-    canvas.freeDrawingBrush.color = color;
-  }
-  if (width !== undefined) {
-    canvas.freeDrawingBrush.width = width;
+  if (canvas.freeDrawingBrush) {
+    if (color) {
+      canvas.freeDrawingBrush.color = color;
+    }
+    if (width !== undefined) {
+      canvas.freeDrawingBrush.width = width;
+    }
   }
 }
 
