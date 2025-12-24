@@ -3,6 +3,7 @@
   "buildCommand": "prisma generate && prisma migrate deploy && next build",
   "framework": "nextjs",
   "regions": ["iad1"],
+  "installCommand": "npm ci",
   "functions": {
     "src/app/api/**/*.ts": {
       "maxDuration": 60
