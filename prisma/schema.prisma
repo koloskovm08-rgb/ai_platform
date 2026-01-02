@@ -1,0 +1,305 @@
+// Схема базы данных для AI Image Platform
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Модель пользователя
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?   // Хешированный пароль для email/password входа
+  role          UserRole  @default(USER)
+  
+  // Связи
+  accounts      Account[]
+  sessions      Session[]
+  generations   Generation[]
+  edits         Edit[]
+  templates     Template[]
+  subscription  Subscription?
+  apiKeys       ApiKey[]
+  businessCardProjects BusinessCardProject[]
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@map("users")
+}
+
+// Роли пользователей
+enum UserRole {
+  USER
+  ADMIN
+}
+
+// NextAuth Account модель
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+// NextAuth Session модель
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+// NextAuth VerificationToken модель
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// Токены сброса пароля
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  email     String
+  token     String   @unique
+  expires   DateTime
+  createdAt DateTime @default(now())
+
+  @@unique([email, token])
+  @@map("password_reset_tokens")
+}
+
+// API ключи для разработчиков
+model ApiKey {
+  id          String   @id @default(cuid())
+  userId      String
+  name        String   // Название ключа (для идентификации)
+  key         String   @unique // Сам API ключ
+  lastUsedAt  DateTime?
+  expiresAt   DateTime?
+  isActive    Boolean  @default(true)
+  
+  // Лимиты
+  requestsLimit Int     @default(1000) // Запросов в месяц
+  requestsUsed  Int     @default(0)
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("api_keys")
+  @@index([userId])
+  @@index([key])
+}
+
+// Подписки пользователей
+model Subscription {
+  id               String            @id @default(cuid())
+  userId           String            @unique
+  plan             SubscriptionPlan  @default(FREE)
+  status           SubscriptionStatus @default(ACTIVE)
+  
+  // Лимиты
+  generationsLeft  Int               @default(10) // Оставшиеся генерации в месяце
+  generationsLimit Int               @default(10) // Лимит генераций в месяце
+  
+  // Платежная информация
+  paymentId        String?           // ID платежа в ЮKassa
+  
+  // Даты
+  currentPeriodStart DateTime        @default(now())
+  currentPeriodEnd   DateTime        @default(now())
+  cancelAtPeriodEnd  Boolean         @default(false)
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("subscriptions")
+}
+
+// Тарифные планы
+enum SubscriptionPlan {
+  FREE
+  PRO
+  PREMIUM
+}
+
+// Статусы подписки
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELED
+  PAST_DUE
+  TRIALING
+}
+
+// Генерации изображений
+model Generation {
+  id          String   @id @default(cuid())
+  userId      String
+  
+  // Параметры генерации
+  prompt      String   @db.Text
+  negativePrompt String? @db.Text
+  model       AIModel  @default(STABLE_DIFFUSION)
+  style       String?
+  width       Int      @default(1024)
+  height      Int      @default(1024)
+  numOutputs  Int      @default(1)
+  
+  // Результаты
+  imageUrl    String   @db.Text
+  thumbnailUrl String? @db.Text
+  upscaledUrl  String?  @db.Text // URL увеличенной версии
+  
+  // Метаданные
+  seed        Int?
+  guidanceScale Float? @default(7.5)
+  steps       Int?     @default(50)
+  
+  // Новые функции
+  isFavorite  Boolean  @default(false)
+  isPublic    Boolean  @default(false)
+  shareToken  String?  @unique // Уникальный токен для публичного доступа
+  parentId    String?  // Для вариаций - ссылка на оригинал
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  createdAt DateTime @default(now())
+
+  @@map("generations")
+  @@index([userId])
+  @@index([createdAt])
+  @@index([isFavorite])
+  @@index([isPublic])
+  @@index([shareToken])
+  @@index([parentId])
+}
+
+// AI модели для генерации
+enum AIModel {
+  STABLE_DIFFUSION
+  DALL_E_3
+  MIDJOURNEY
+}
+
+// Редактирования изображений
+model Edit {
+  id              String   @id @default(cuid())
+  userId          String
+  
+  // Изображения
+  originalImageUrl String  @db.Text
+  editedImageUrl   String  @db.Text
+  thumbnailUrl     String? @db.Text
+  
+  // Операции редактирования (JSON)
+  operations      Json     // Массив операций: [{type: 'crop', params: {...}}, ...]
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  createdAt DateTime @default(now())
+
+  @@map("edits")
+  @@index([userId])
+  @@index([createdAt])
+}
+
+// Шаблоны
+model Template {
+  id          String         @id @default(cuid())
+  name        String
+  description String?        @db.Text
+  type        TemplateType
+  category    String?        // "business", "social", "print", etc.
+  
+  // Изображения и конфигурация
+  previewUrl  String         @db.Text
+  thumbnailUrl String?       @db.Text
+  config      Json           // JSON конфигурация шаблона
+  
+  // Доступность
+  isPremium   Boolean        @default(false) // Доступен только для Pro/Premium
+  isPublic    Boolean        @default(true)  // Виден всем или только создателю
+  
+  // Автор (null = системный шаблон)
+  userId      String?
+  user        User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
+  
+  // Статистика
+  usageCount  Int            @default(0)
+  
+  // Связи
+  businessCardProjects BusinessCardProject[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("templates")
+  @@index([type])
+  @@index([category])
+  @@index([isPremium])
+}
+
+// Типы шаблонов
+enum TemplateType {
+  STICKER
+  BUSINESS_CARD
+  LABEL
+  BANNER
+  PRODUCT_CARD
+  SOCIAL_POST
+  FLYER
+  OTHER
+}
+
+// Проекты визиток
+model BusinessCardProject {
+  id          String   @id @default(cuid())
+  userId      String
+  name        String
+  canvasData  Json     // Данные Fabric.js canvas
+  config      Json     // Настройки: размер, ориентация, цвета и т.д.
+  thumbnailUrl String? @db.Text // Превью проекта
+  templateId  String?  // Если использован шаблон
+  template    Template? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("business_card_projects")
+  @@index([userId])
+  @@index([createdAt])
+  @@index([templateId])
+}
+
