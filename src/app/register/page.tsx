@@ -107,14 +107,22 @@ export default function RegisterPage() {
         redirect: false, // Не делаем автоматический редирект, делаем вручную
       });
       
+      // Проверяем результат
+      if (!result) {
+        console.error('Google sign in: no result returned');
+        setError('Google OAuth не настроен. Обратитесь к администратору.');
+        setIsGoogleLoading(false);
+        return;
+      }
+      
       // Если результат содержит ошибку
-      if (result?.error) {
+      if (result.error) {
         console.error('Google sign in error:', result.error);
         // Более детальные сообщения об ошибках
         const errorMessages: Record<string, string> = {
-          Configuration: 'Ошибка конфигурации Google OAuth. Обратитесь к администратору.',
+          Configuration: 'Ошибка конфигурации Google OAuth. Проверьте переменные окружения GOOGLE_CLIENT_ID и GOOGLE_CLIENT_SECRET.',
           AccessDenied: 'Доступ запрещен. Проверьте права доступа к Google аккаунту.',
-          OAuthSignin: 'Ошибка регистрации через Google. Проверьте настройки OAuth в Google Console.',
+          OAuthSignin: 'Ошибка регистрации через Google. Проверьте настройки OAuth в Google Console и убедитесь, что callback URL добавлен в Authorized redirect URIs.',
           OAuthCallback: 'Ошибка обработки ответа от Google.',
           OAuthCreateAccount: 'Не удалось создать аккаунт через Google.',
           Callback: 'Ошибка обработки ответа от Google.',
@@ -126,19 +134,28 @@ export default function RegisterPage() {
       }
       
       // Если есть URL для редиректа (OAuth flow)
-      if (result?.url) {
+      if (result.url) {
         window.location.href = result.url;
         // Не сбрасываем loading, так как происходит редирект
         return;
       }
       
+      // Если нет URL и нет ошибки, но результат ok: false
+      if (result.ok === false) {
+        console.error('Google sign in: signIn returned ok: false');
+        setError('Google OAuth не настроен или провайдер недоступен. Проверьте настройки OAuth.');
+        setIsGoogleLoading(false);
+        return;
+      }
+      
       // Если нет URL, значит что-то пошло не так
-      console.error('Google sign in: no redirect URL returned');
-      setError('Не удалось начать процесс регистрации через Google. Проверьте настройки OAuth.');
+      console.error('Google sign in: no redirect URL returned', result);
+      setError('Не удалось начать процесс регистрации через Google. Проверьте настройки OAuth (GOOGLE_CLIENT_ID и GOOGLE_CLIENT_SECRET в .env.local).');
       setIsGoogleLoading(false);
     } catch (error) {
       console.error('Google sign in error:', error);
-      setError('Произошла ошибка при регистрации через Google. Проверьте настройки OAuth.');
+      const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка';
+      setError(`Произошла ошибка при регистрации через Google: ${errorMessage}. Проверьте настройки OAuth.`);
       setIsGoogleLoading(false);
     }
   };

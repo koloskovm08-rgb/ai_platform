@@ -10,12 +10,42 @@ async function handleRequest(
     const url = new URL(req.url);
     const pathname = url.pathname;
     
+    // Определяем провайдер из pathname (например, /api/auth/signin/google или /api/auth/callback/google)
+    const isGoogleProvider = pathname.includes('/signin/google') || pathname.includes('/callback/google');
+    
+    // Проверяем, запрашивается ли Google провайдер
+    if (isGoogleProvider) {
+      const googleClientId = process.env.GOOGLE_CLIENT_ID;
+      const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
+      
+      if (!googleClientId || !googleClientSecret || googleClientId.trim() === '' || googleClientSecret.trim() === '') {
+        console.error('❌ Google OAuth provider requested but not configured:', {
+          hasClientId: !!googleClientId,
+          hasClientSecret: !!googleClientSecret,
+          pathname,
+        });
+        
+        // Возвращаем ошибку конфигурации
+        return new Response(
+          JSON.stringify({ 
+            error: 'Configuration',
+            message: 'Google OAuth provider is not configured. Please check GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET environment variables.'
+          }),
+          { 
+            status: 500,
+            headers: { 'Content-Type': 'application/json' }
+          }
+        );
+      }
+    }
+    
     // Логируем запросы для диагностики
     if (process.env.NODE_ENV === 'development') {
       console.log('🔐 NextAuth request:', {
         method: req.method,
         pathname,
         searchParams: Object.fromEntries(url.searchParams),
+        isGoogleProvider,
       });
     }
     
@@ -28,6 +58,7 @@ async function handleRequest(
         status: response.status,
         statusText: response.statusText,
         pathname,
+        isGoogleProvider,
         body: responseText.substring(0, 500), // Первые 500 символов
       });
     }
