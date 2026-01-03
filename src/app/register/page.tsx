@@ -81,6 +81,7 @@ export default function RegisterPage() {
 
       if (loginResult?.error) {
         // Если автоматический вход не удался, редиректим на страницу входа
+        setIsLoading(false);
         router.push('/login?registered=true');
         return;
       }
@@ -88,7 +89,8 @@ export default function RegisterPage() {
       // Успешная регистрация и вход - редирект на главную
       router.push('/');
       router.refresh();
-    } catch {
+    } catch (error) {
+      console.error('Registration error:', error);
       setError('Произошла ошибка при регистрации');
       setIsLoading(false);
     }

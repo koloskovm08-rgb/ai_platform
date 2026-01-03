@@ -103,7 +103,8 @@ function LoginForm() {
       // Успешный вход - редирект на главную
       router.push('/');
       router.refresh();
-    } catch {
+    } catch (error) {
+      console.error('Login error:', error);
       setError('Произошла ошибка при входе');
       setIsLoading(false);
     }

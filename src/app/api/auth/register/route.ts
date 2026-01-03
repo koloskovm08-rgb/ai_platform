@@ -3,7 +3,16 @@ import { registerUser } from '@/lib/auth/actions';
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    let body;
+    try {
+      body = await request.json();
+    } catch (parseError) {
+      return NextResponse.json(
+        { error: 'Некорректный формат данных. Ожидается JSON.' },
+        { status: 400 }
+      );
+    }
+    
     const result = await registerUser(body);
 
     if (!result.success) {
