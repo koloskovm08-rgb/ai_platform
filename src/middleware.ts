@@ -1,47 +1,43 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { decodeJwt } from 'jose';
+import { getToken } from 'next-auth/jwt';
 
 /**
  * Легковесная проверка сессии для Edge Function
- * Использует только декодирование JWT из cookie без импорта всей конфигурации NextAuth
- * Это уменьшает размер Edge Function с ~1.03 MB до <1 MB
- * 
- * Примечание: decodeJwt не проверяет подпись, но это приемлемо для middleware,
- * так как полная проверка происходит на сервере в API routes
+ * Не импортирует NextAuth целиком — использует getToken() для безопасного чтения
+ * токена из cookie (поддерживает JWT/JWE в NextAuth/Auth.js).
  */
 async function getSessionFromCookie(request: NextRequest) {
-  // Проверяем все возможные имена cookie для NextAuth v5
-  const sessionToken = 
-    request.cookies.get('authjs.session-token')?.value ||
-    request.cookies.get('__Secure-authjs.session-token')?.value ||
-    request.cookies.get('next-auth.session-token')?.value ||
-    request.cookies.get('__Secure-next-auth.session-token')?.value;
+  /**
+   * Важно: JWT у NextAuth/Auth.js часто **зашифрован** (JWE), поэтому простое decodeJwt()
+   * не работает и будет постоянно возвращать null.
+   *
+   * getToken() умеет корректно расшифровать/проверить токен в Edge middleware.
+   */
+  const secret = process.env.NEXTAUTH_SECRET;
+  if (!secret) return null;
 
-  if (!sessionToken) {
-    return null;
-  }
+  // Пробуем все возможные имена cookie (Auth.js v5 и NextAuth v4)
+  const cookieNames = [
+    'authjs.session-token',
+    '__Secure-authjs.session-token',
+    'next-auth.session-token',
+    '__Secure-next-auth.session-token',
+  ] as const;
 
-  try {
-    // Декодируем JWT токен (без проверки подписи для скорости в Edge)
-    // decodeJwt только декодирует payload, не проверяет подпись
-    // Это безопасно, так как полная проверка будет на сервере
-    const token = decodeJwt(sessionToken);
-
-    // Проверяем срок действия токена
-    if (!token || !token.exp || token.exp * 1000 < Date.now()) {
-      return null;
+  for (const cookieName of cookieNames) {
+    const token = await getToken({ req: request, secret, cookieName });
+    if (token) {
+      return {
+        user: {
+          id: token.id as string,
+          role: token.role as string,
+          email: token.email as string,
+        },
+      };
     }
-
-    return {
-      user: {
-        id: token.id as string,
-        role: token.role as string,
-        email: token.email as string,
-      },
-    };
-  } catch {
-    return null;
   }
+
+  return null;
 }
 
 export async function middleware(request: NextRequest) {
@@ -92,7 +88,8 @@ export const config = {
      * - favicon.ico (favicon file)
      * - public folder
      */
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    // Не обрабатываем /api/* (там авторизация проверяется внутри route handlers через auth())
+    '/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 };
 
