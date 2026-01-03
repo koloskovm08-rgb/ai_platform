@@ -37,6 +37,7 @@ export default function RegisterPage() {
     Record<string, string[]>
   >({});
   const [isGoogleLoading, setIsGoogleLoading] = React.useState(false);
+  const [isGoogleAvailable, setIsGoogleAvailable] = React.useState<boolean | null>(null);
 
   const {
     register,
@@ -45,6 +46,26 @@ export default function RegisterPage() {
   } = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
   });
+
+  // Проверяем доступность Google OAuth при монтировании компонента
+  React.useEffect(() => {
+    const checkGoogleProvider = async () => {
+      try {
+        const response = await fetch('/api/auth/providers');
+        if (!response.ok) {
+          setIsGoogleAvailable(false);
+          return;
+        }
+        const providers = await response.json();
+        setIsGoogleAvailable(!!providers.google);
+      } catch (error) {
+        console.error('Failed to check Google provider:', error);
+        setIsGoogleAvailable(false);
+      }
+    };
+    
+    checkGoogleProvider();
+  }, []);
 
   const onSubmit = async (data: RegisterFormData) => {
     setIsLoading(true);
@@ -97,6 +118,12 @@ export default function RegisterPage() {
   };
 
   const handleGoogleSignIn = async () => {
+    // Проверяем доступность провайдера перед попыткой входа
+    if (isGoogleAvailable === false) {
+      setError('Google OAuth не настроен. Пожалуйста, используйте регистрацию по email.');
+      return;
+    }
+
     setIsGoogleLoading(true);
     setError(null);
 
@@ -120,12 +147,12 @@ export default function RegisterPage() {
         console.error('Google sign in error:', result.error);
         // Более детальные сообщения об ошибках
         const errorMessages: Record<string, string> = {
-          Configuration: 'Ошибка конфигурации Google OAuth. Проверьте переменные окружения GOOGLE_CLIENT_ID и GOOGLE_CLIENT_SECRET.',
-          AccessDenied: 'Доступ запрещен. Проверьте права доступа к Google аккаунту.',
-          OAuthSignin: 'Ошибка регистрации через Google. Проверьте настройки OAuth в Google Console и убедитесь, что callback URL добавлен в Authorized redirect URIs.',
-          OAuthCallback: 'Ошибка обработки ответа от Google.',
-          OAuthCreateAccount: 'Не удалось создать аккаунт через Google.',
-          Callback: 'Ошибка обработки ответа от Google.',
+          Configuration: 'Ошибка конфигурации Google OAuth. Пожалуйста, используйте регистрацию по email.',
+          AccessDenied: 'Доступ запрещен. Вы отклонили доступ к своему Google аккаунту.',
+          OAuthSignin: 'Ошибка регистрации через Google. Попробуйте позже или используйте регистрацию по email.',
+          OAuthCallback: 'Ошибка обработки ответа от Google. Попробуйте еще раз.',
+          OAuthCreateAccount: 'Не удалось создать аккаунт через Google. Попробуйте регистрацию по email.',
+          Callback: 'Ошибка обработки ответа от Google. Попробуйте еще раз.',
           Default: 'Произошла ошибка при регистрации через Google. Попробуйте еще раз.',
         };
         setError(errorMessages[result.error] || errorMessages.Default);
@@ -143,19 +170,19 @@ export default function RegisterPage() {
       // Если нет URL и нет ошибки, но результат ok: false
       if (result.ok === false) {
         console.error('Google sign in: signIn returned ok: false');
-        setError('Google OAuth не настроен или провайдер недоступен. Проверьте настройки OAuth.');
+        setError('Google OAuth недоступен. Пожалуйста, используйте регистрацию по email.');
         setIsGoogleLoading(false);
         return;
       }
       
       // Если нет URL, значит что-то пошло не так
       console.error('Google sign in: no redirect URL returned', result);
-      setError('Не удалось начать процесс регистрации через Google. Проверьте настройки OAuth (GOOGLE_CLIENT_ID и GOOGLE_CLIENT_SECRET в .env.local).');
+      setError('Не удалось начать процесс регистрации через Google. Попробуйте регистрацию по email.');
       setIsGoogleLoading(false);
     } catch (error) {
       console.error('Google sign in error:', error);
       const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка';
-      setError(`Произошла ошибка при регистрации через Google: ${errorMessage}. Проверьте настройки OAuth.`);
+      setError(`Произошла ошибка при регистрации через Google: ${errorMessage}`);
       setIsGoogleLoading(false);
     }
   };
@@ -246,44 +273,49 @@ export default function RegisterPage() {
             </Button>
           </form>
 
-          <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-card px-2 text-muted-foreground">
-                или продолжить с
-              </span>
-            </div>
-          </div>
+          {/* Показываем Google OAuth только если провайдер доступен */}
+          {isGoogleAvailable !== false && (
+            <>
+              <div className="relative my-6">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-card px-2 text-muted-foreground">
+                    или продолжить с
+                  </span>
+                </div>
+              </div>
 
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full"
-            onClick={handleGoogleSignIn}
-            disabled={isLoading || isGoogleLoading}
-          >
-            {isGoogleLoading && (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            )}
-            <svg
-              className="mr-2 h-4 w-4"
-              aria-hidden="true"
-              focusable="false"
-              data-prefix="fab"
-              data-icon="google"
-              role="img"
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 488 512"
-            >
-              <path
-                fill="currentColor"
-                d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 123 24.5 166.3 64.9l-67.5 64.9C258.5 52.6 94.3 52.6 94.3 256s164.2 203.4 152.5 183.1c26.2-9.6 48.2-25.1 65.7-43.4H248v-96h240v96z"
-              />
-            </svg>
-            Зарегистрироваться через Google
-          </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                onClick={handleGoogleSignIn}
+                disabled={isLoading || isGoogleLoading || isGoogleAvailable === null}
+              >
+                {isGoogleLoading && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
+                <svg
+                  className="mr-2 h-4 w-4"
+                  aria-hidden="true"
+                  focusable="false"
+                  data-prefix="fab"
+                  data-icon="google"
+                  role="img"
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 488 512"
+                >
+                  <path
+                    fill="currentColor"
+                    d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 123 24.5 166.3 64.9l-67.5 64.9C258.5 52.6 94.3 52.6 94.3 256s164.2 203.4 152.5 183.1c26.2-9.6 48.2-25.1 65.7-43.4H248v-96h240v96z"
+                  />
+                </svg>
+                Зарегистрироваться через Google
+              </Button>
+            </>
+          )}
         </CardContent>
         <CardFooter className="flex flex-col space-y-4">
           <div className="text-center text-sm text-muted-foreground">

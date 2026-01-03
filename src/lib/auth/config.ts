@@ -18,9 +18,12 @@ const loginSchema = z.object({
 
 // Проверка обязательных переменных окружения
 function validateAuthConfig() {
+  // Проверяем обе возможные переменные для секрета (NextAuth v5 использует AUTH_SECRET, v4 - NEXTAUTH_SECRET)
+  const authSecret = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET;
+  
   const requiredVars = {
     NEXTAUTH_URL: process.env.NEXTAUTH_URL,
-    NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET,
+    'AUTH_SECRET или NEXTAUTH_SECRET': authSecret,
     DATABASE_URL: process.env.DATABASE_URL,
   };
 
@@ -36,8 +39,8 @@ function validateAuthConfig() {
     const errorMessage = `❌ NextAuth Configuration Error: Missing required environment variables:\n${missing.map(v => `  - ${v}`).join('\n')}\n\n` +
       `Please add these variables to your .env.local file:\n` +
       missing.map(v => {
-        if (v === 'NEXTAUTH_SECRET') {
-          return `  ${v}="сгенерируйте через: openssl rand -base64 32"`;
+        if (v === 'AUTH_SECRET или NEXTAUTH_SECRET') {
+          return `  AUTH_SECRET="сгенерируйте через: openssl rand -base64 32"`;
         }
         if (v === 'NEXTAUTH_URL') {
           return `  ${v}="http://localhost:3000"`;
