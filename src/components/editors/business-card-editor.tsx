@@ -34,6 +34,7 @@ import { ImageToolsPanel } from './image-tools-panel';
 import { AILayoutSuggestions } from '@/components/editor/ai-layout-suggestions';
 import { AIColorPalette } from '@/components/editor/ai-color-palette';
 import { AITextAssist } from '@/components/editor/ai-text-assist';
+import { BusinessCardImageGenerator } from './business-card-image-generator';
 import { Mockup3DPreview } from './3d-mockup-preview';
 import { ExportDialog } from './export-dialog';
 import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts';
@@ -95,6 +96,7 @@ export function BusinessCardEditor() {
   const [aiLayoutDialogOpen, setAiLayoutDialogOpen] = React.useState(false);
   const [aiColorPaletteDialogOpen, setAiColorPaletteDialogOpen] = React.useState(false);
   const [aiTextAssistDialogOpen, setAiTextAssistDialogOpen] = React.useState(false);
+  const [aiImageGeneratorOpen, setAiImageGeneratorOpen] = React.useState(false);
   
   // Multi-page и экспорт
   const [pages, setPages] = React.useState<Array<{ id: string; name: string; canvasData: unknown }>>([
@@ -383,6 +385,40 @@ export function BusinessCardEditor() {
 
   const handleAddQRCode = () => {
     setQrCodeDialogOpen(true);
+  };
+
+  // Обработчик добавления сгенерированного изображения
+  const handleAddGeneratedImage = async (imageUrl: string) => {
+    if (!canvas) return;
+
+    try {
+      const fabric = await import('fabric');
+      const img = await fabric.FabricImage.fromURL(imageUrl, { crossOrigin: 'anonymous' });
+      
+      // Масштабируем изображение под размер визитки
+      const maxWidth = canvasWidth * 0.8;
+      const maxHeight = canvasHeight * 0.8;
+      const scale = Math.min(maxWidth / img.width!, maxHeight / img.height!);
+      
+      img.set({
+        left: canvasWidth / 2,
+        top: canvasHeight / 2,
+        originX: 'center',
+        originY: 'center',
+        scaleX: scale,
+        scaleY: scale,
+      });
+
+      canvas.add(img);
+      canvas.setActiveObject(img);
+      canvas.renderAll();
+      saveHistory();
+      
+      toast.success('Изображение добавлено на визитку!');
+    } catch (error) {
+      console.error('Error adding generated image:', error);
+      toast.error('Ошибка добавления изображения');
+    }
   };
 
   // Функции управления проектами
@@ -1026,6 +1062,7 @@ export function BusinessCardEditor() {
         onAILayoutIdeas={() => setAiLayoutDialogOpen(true)}
         onAIColorPalette={() => setAiColorPaletteDialogOpen(true)}
         onAITextAssist={() => setAiTextAssistDialogOpen(true)}
+        onAIImageGeneration={() => setAiImageGeneratorOpen(true)}
         onAIImageEnhancement={async () => {
           const activeObject = canvas?.getActiveObject();
           if (!activeObject || activeObject.type !== 'image') {
@@ -1529,6 +1566,13 @@ export function BusinessCardEditor() {
           saveHistory();
           toast.success('Текст обновлен!');
         }}
+      />
+
+      {/* Диалог генерации изображений для визиток */}
+      <BusinessCardImageGenerator
+        open={aiImageGeneratorOpen}
+        onOpenChange={setAiImageGeneratorOpen}
+        onImageGenerated={handleAddGeneratedImage}
       />
 
       {/* Диалог экспорта */}

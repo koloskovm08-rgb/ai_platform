@@ -172,6 +172,7 @@ export const generateImageSchema = z.object({
   numOutputs: z.number().int().min(1).max(4).default(1),
   guidanceScale: z.number().min(1).max(20).default(7.5).optional(),
   steps: z.number().int().min(10).max(150).default(50).optional(),
+  contentType: z.enum(['general', 'business-card', 'poster', 'logo', 'sticker', 'greeting-card', 'label', 'product-card']).default('general').optional(),
 });
 
 export type GenerateImageInput = z.infer<typeof generateImageSchema>;

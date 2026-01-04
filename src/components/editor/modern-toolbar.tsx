@@ -108,6 +108,7 @@ interface ModernToolbarProps {
   onAIColorPalette?: () => void;
   onAITextAssist?: () => void;
   onAIImageEnhancement?: () => void;
+  onAIImageGeneration?: () => void;
   onAIPrintLayout?: () => void;
 
   // Export
@@ -168,6 +169,7 @@ export function ModernToolbar({
   onAIColorPalette,
   onAITextAssist,
   onAIImageEnhancement,
+  onAIImageGeneration,
   onAIPrintLayout,
   onExportPNG,
   onExportPDF,
@@ -665,6 +667,15 @@ export function ModernToolbar({
               icon={<FileImage className="h-4 w-4" />}
               onClick={() => onAIImageEnhancement?.()}
               description="AI улучшит изображение"
+              badge="AI"
+              variant="primary"
+            />
+            <ToolbarTool
+              id="ai-image-generate"
+              label="Сгенерировать изображение"
+              icon={<Wand2 className="h-4 w-4" />}
+              onClick={() => onAIImageGeneration?.()}
+              description="AI создаст изображение для визитки"
               badge="AI"
               variant="primary"
             />

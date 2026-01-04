@@ -6,6 +6,63 @@ import { generateWithStableDiffusion } from '@/lib/ai/replicate';
 import { generateWithDALLE3 } from '@/lib/ai/openai';
 import { canGenerateImage, decrementGenerations } from '@/lib/utils/subscription';
 
+/**
+ * Улучшает промпт в зависимости от типа контента
+ */
+function enhancePromptForContentType(
+  prompt: string,
+  contentType?: string
+): { enhancedPrompt: string; enhancedNegativePrompt: string } {
+  let enhancedPrompt = prompt;
+  let enhancedNegativePrompt = 'blurry, low quality, distorted, ugly, bad anatomy';
+
+  switch (contentType) {
+    case 'business-card':
+      enhancedPrompt = `Professional business card design, ${prompt}, clean layout, modern typography, high-end corporate style, elegant and minimalist, professional color scheme, suitable for printing`;
+      enhancedNegativePrompt += ', cluttered, messy, unprofessional, childish, cartoon, 3d render, photo, person, face';
+      break;
+
+    case 'poster':
+      enhancedPrompt = `Eye-catching poster design, ${prompt}, bold typography, striking visual composition, professional graphic design, suitable for printing`;
+      enhancedNegativePrompt += ', blurry text, unreadable, cluttered';
+      break;
+
+    case 'logo':
+      enhancedPrompt = `Professional logo design, ${prompt}, clean vector style, simple and memorable, scalable, iconic, modern branding`;
+      enhancedNegativePrompt += ', complex, detailed photo, 3d, realistic, cluttered, text';
+      break;
+
+    case 'sticker':
+      enhancedPrompt = `Cute sticker design, ${prompt}, vibrant colors, clean edges, die-cut style, fun and playful, isolated on white background`;
+      enhancedNegativePrompt += ', blurry edges, complex background, realistic photo';
+      break;
+
+    case 'greeting-card':
+      enhancedPrompt = `Beautiful greeting card design, ${prompt}, warm and inviting, elegant composition, suitable for special occasions`;
+      enhancedNegativePrompt += ', dark, gloomy, inappropriate';
+      break;
+
+    case 'label':
+      enhancedPrompt = `Product label design, ${prompt}, clean and professional, clear typography, attractive packaging design`;
+      enhancedNegativePrompt += ', cluttered, unreadable text, unprofessional';
+      break;
+
+    case 'product-card':
+      enhancedPrompt = `E-commerce product card design, ${prompt}, clean white background, professional product photography style, high-quality commercial image`;
+      enhancedNegativePrompt += ', cluttered background, unprofessional, low resolution';
+      break;
+
+    default:
+      // Для 'general' или undefined оставляем промпт как есть
+      break;
+  }
+
+  return {
+    enhancedPrompt,
+    enhancedNegativePrompt,
+  };
+}
+
 export async function POST(request: NextRequest) {
   try {
     // Проверка аутентификации
@@ -53,7 +110,20 @@ export async function POST(request: NextRequest) {
       numOutputs,
       guidanceScale,
       steps,
+      contentType,
     } = validatedData.data;
+
+    // Улучшаем промпт в зависимости от типа контента
+    const { enhancedPrompt, enhancedNegativePrompt } = enhancePromptForContentType(
+      prompt,
+      contentType
+    );
+
+    // Используем улучшенный промпт или оригинальный negativePrompt если он был указан
+    const finalPrompt = contentType && contentType !== 'general' ? enhancedPrompt : prompt;
+    const finalNegativePrompt = contentType && contentType !== 'general' 
+      ? enhancedNegativePrompt 
+      : (negativePrompt || enhancedNegativePrompt);
 
     // Генерация изображения в зависимости от модели
     let result;
@@ -66,7 +136,7 @@ export async function POST(request: NextRequest) {
       else if (width === 1024 && height === 1792) size = '1024x1792';
 
       result = await generateWithDALLE3({
-        prompt,
+        prompt: finalPrompt,
         size,
         quality: 'standard',
         style: 'vivid',
@@ -75,8 +145,8 @@ export async function POST(request: NextRequest) {
     } else {
       // Stable Diffusion (по умолчанию)
       result = await generateWithStableDiffusion({
-        prompt,
-        negativePrompt,
+        prompt: finalPrompt,
+        negativePrompt: finalNegativePrompt,
         width,
         height,
         numOutputs,
@@ -98,8 +168,8 @@ export async function POST(request: NextRequest) {
         return await prisma.generation.create({
           data: {
             userId,
-            prompt,
-            negativePrompt,
+            prompt: finalPrompt, // Сохраняем улучшенный промпт
+            negativePrompt: finalNegativePrompt,
             model,
             width,
             height,
