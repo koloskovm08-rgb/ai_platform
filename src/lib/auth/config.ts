@@ -9,6 +9,7 @@ import type { JWT } from 'next-auth/jwt';
 import type { Session } from 'next-auth';
 import { UserRole } from '@prisma/client';
 import type { Provider } from 'next-auth/providers';
+import type { OAuthConfig, OAuthUserConfig } from 'next-auth/providers';
 
 // Схема валидации для входа
 const loginSchema = z.object({
@@ -16,13 +17,122 @@ const loginSchema = z.object({
   password: z.string().min(6, 'Пароль должен быть минимум 6 символов'),
 });
 
+// Типы для VK OAuth
+interface VKProfile {
+  id: number;
+  first_name: string;
+  last_name: string;
+  email?: string;
+  photo_200?: string;
+}
+
+interface VKTokenResponse {
+  access_token: string;
+  expires_in: number;
+  user_id: number;
+  email?: string;
+}
+
+// Кастомный VK OAuth провайдер
+function VKProvider(options: OAuthUserConfig<VKProfile>): OAuthConfig<VKProfile> {
+  return {
+    id: 'vk',
+    name: 'VK',
+    type: 'oauth',
+    authorization: {
+      url: 'https://oauth.vk.com/authorize',
+      params: {
+        // Для публикаций в группу нужны права на wall/photos (+ часто groups/offline)
+        // Важно: после изменения scope нужно перелогиниться через VK, чтобы токен обновился.
+        scope: 'email,wall,photos,groups,offline',
+        response_type: 'code',
+        display: 'page',
+        v: '5.131', // Версия VK API
+      },
+    },
+    token: {
+      url: 'https://oauth.vk.com/access_token',
+      async request({ params, provider }) {
+        const url = new URL(provider.token?.url as string);
+        url.searchParams.append('client_id', options.clientId);
+        url.searchParams.append('client_secret', options.clientSecret);
+        url.searchParams.append('redirect_uri', params.redirect_uri || '');
+        url.searchParams.append('code', params.code as string);
+
+        const response = await fetch(url.toString());
+        const tokens: VKTokenResponse = await response.json();
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch VK access token');
+        }
+
+        return { tokens };
+      },
+    },
+    userinfo: {
+      url: 'https://api.vk.com/method/users.get',
+      async request({ tokens, provider }) {
+        const url = new URL(provider.userinfo?.url as string);
+        url.searchParams.append('access_token', tokens.access_token as string);
+        url.searchParams.append('fields', 'photo_200');
+        url.searchParams.append('v', '5.131');
+
+        const response = await fetch(url.toString());
+        const data = await response.json();
+
+        if (!data.response || !data.response[0]) {
+          throw new Error('Failed to fetch VK user info');
+        }
+
+        const profile = data.response[0];
+        
+        // VK может вернуть email в токене, а не в профиле
+        const vkTokens = tokens as unknown as VKTokenResponse;
+        if (vkTokens.email) {
+          profile.email = vkTokens.email;
+        }
+
+        return profile;
+      },
+    },
+    profile(profile) {
+      return {
+        id: String(profile.id),
+        name: `${profile.first_name} ${profile.last_name}`,
+        email: profile.email || `vk${profile.id}@vk.placeholder.com`, // Фолбэк если нет email
+        image: profile.photo_200,
+      };
+    },
+    style: {
+      logo: '/vk-logo.svg',
+      bg: '#0077FF',
+      text: '#fff',
+    },
+    ...options,
+  };
+}
+
 // Проверка обязательных переменных окружения
 function validateAuthConfig() {
-  // Проверяем обе возможные переменные для секрета (NextAuth v5 использует AUTH_SECRET, v4 - NEXTAUTH_SECRET)
+  /**
+   * NextAuth v5 (Auth.js) чаще использует AUTH_SECRET, а старые гайды — NEXTAUTH_SECRET.
+   * Поддерживаем оба варианта.
+   */
   const authSecret = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET;
-  
+
+  /**
+   * Базовый URL важен для email-ссылок/redirect-URI, но на Vercel его часто не задают явно:
+   * можно безопасно брать из NEXT_PUBLIC_SITE_URL или VERCEL_URL.
+   *
+   * IMPORTANT: VERCEL_URL приходит без протокола (например: myapp.vercel.app).
+   */
+  const baseUrl =
+    process.env.NEXTAUTH_URL ||
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined);
+
   const requiredVars = {
-    NEXTAUTH_URL: process.env.NEXTAUTH_URL,
+    'NEXTAUTH_URL или NEXT_PUBLIC_SITE_URL или VERCEL_URL': baseUrl,
     'AUTH_SECRET или NEXTAUTH_SECRET': authSecret,
     DATABASE_URL: process.env.DATABASE_URL,
   };
@@ -42,8 +152,8 @@ function validateAuthConfig() {
         if (v === 'AUTH_SECRET или NEXTAUTH_SECRET') {
           return `  AUTH_SECRET="сгенерируйте через: openssl rand -base64 32"`;
         }
-        if (v === 'NEXTAUTH_URL') {
-          return `  ${v}="http://localhost:3000"`;
+        if (v === 'NEXTAUTH_URL или NEXT_PUBLIC_SITE_URL или VERCEL_URL') {
+          return `  NEXTAUTH_URL="http://localhost:3000"`;
         }
         return `  ${v}="ваше-значение"`;
       }).join('\n');
@@ -52,20 +162,20 @@ function validateAuthConfig() {
     throw new Error(errorMessage);
   }
 
-  // Проверка формата NEXTAUTH_URL
-  if (requiredVars.NEXTAUTH_URL && !requiredVars.NEXTAUTH_URL.startsWith('http')) {
+  // Проверка формата базового URL
+  if (baseUrl && !baseUrl.startsWith('http')) {
     throw new Error(
-      `❌ NEXTAUTH_URL must start with http:// or https://\n` +
-      `Current value: ${requiredVars.NEXTAUTH_URL}\n` +
+      `❌ Base URL must start with http:// or https://\n` +
+      `Current value: ${baseUrl}\n` +
       `For local development use: http://localhost:3000`
     );
   }
 
-  // Проверка длины NEXTAUTH_SECRET
-  if (requiredVars.NEXTAUTH_SECRET && requiredVars.NEXTAUTH_SECRET.length < 32) {
+  // Проверка длины AUTH_SECRET/NEXTAUTH_SECRET
+  if (authSecret && authSecret.length < 32) {
     console.warn(
-      `⚠️ NEXTAUTH_SECRET should be at least 32 characters long.\n` +
-      `Current length: ${requiredVars.NEXTAUTH_SECRET.length}\n` +
+      `⚠️ AUTH_SECRET/NEXTAUTH_SECRET should be at least 32 characters long.\n` +
+      `Current length: ${authSecret.length}\n` +
       `Generate a new one: openssl rand -base64 32`
     );
   }
@@ -176,6 +286,41 @@ if (googleClientId && googleClientSecret && googleClientId.trim() !== '' && goog
   }
 }
 
+// Добавляем VK OAuth провайдер только если есть credentials
+const vkClientId = process.env.VK_CLIENT_ID;
+const vkClientSecret = process.env.VK_CLIENT_SECRET;
+
+if (vkClientId && vkClientSecret && vkClientId.trim() !== '' && vkClientSecret.trim() !== '') {
+  try {
+    providers.push(
+      VKProvider({
+        clientId: vkClientId,
+        clientSecret: vkClientSecret,
+      })
+    );
+    const nextAuthUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+    console.log('✅ VK OAuth provider configured');
+    if (process.env.NODE_ENV === 'development') {
+      console.log('📝 VK OAuth callback URL:', `${nextAuthUrl}/api/auth/callback/vk`);
+      console.log('💡 Убедитесь, что этот URL добавлен в настройках приложения VK → Доверенный redirect URI');
+      console.log('📋 VK Client ID:', vkClientId);
+    }
+  } catch (error) {
+    console.error('❌ Error configuring VK OAuth provider:', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: process.env.NODE_ENV === 'development' && error instanceof Error ? error.stack : undefined,
+    });
+  }
+} else {
+  if (process.env.NODE_ENV === 'development') {
+    console.warn(
+      '⚠️ VK OAuth provider is not configured.\n' +
+      'To enable VK login, add VK_CLIENT_ID and VK_CLIENT_SECRET to your .env.local file.\n' +
+      'Get credentials from: https://dev.vk.com/ → Создать приложение'
+    );
+  }
+}
+
 // Создаем PrismaAdapter с обработкой ошибок
 let adapter: ReturnType<typeof PrismaAdapter> | undefined;
 try {
@@ -218,6 +363,13 @@ export const authConfig: NextAuthConfig = {
           
           if (account?.provider === 'google') {
             console.log('🔐 JWT: Google OAuth user data added to token:', {
+              userId: user.id,
+              email: user.email,
+            });
+          }
+          
+          if (account?.provider === 'vk') {
+            console.log('🔐 JWT: VK OAuth user data added to token:', {
               userId: user.id,
               email: user.email,
             });
@@ -287,6 +439,23 @@ export const authConfig: NextAuthConfig = {
             console.warn('⚠️ PrismaAdapter is not initialized - OAuth accounts may not be saved to database');
           }
         }
+        
+        if (account?.provider === 'vk') {
+          console.log('🔐 VK OAuth sign in callback:', {
+            userId: user?.id,
+            email: user?.email,
+            name: user?.name,
+            accountId: account?.providerAccountId,
+            accountType: account?.type,
+            hasProfile: !!profile,
+          });
+          
+          // Проверяем, что адаптер работает
+          if (!adapter) {
+            console.warn('⚠️ PrismaAdapter is not initialized - OAuth accounts may not be saved to database');
+          }
+        }
+        
         return true;
       } catch (error) {
         console.error('❌ SignIn callback error:', {
@@ -365,6 +534,15 @@ export const authConfig: NextAuthConfig = {
             accountId: account?.providerAccountId,
           });
         }
+        
+        if (account?.provider === 'vk') {
+          console.log('🔐 VK OAuth sign in event:', {
+            userId: user?.id,
+            email: user?.email,
+            isNewUser,
+            accountId: account?.providerAccountId,
+          });
+        }
       } catch (error) {
         console.error('❌ SignIn event error:', {
           error: error instanceof Error ? error.message : 'Unknown error',
@@ -377,6 +555,14 @@ export const authConfig: NextAuthConfig = {
       try {
         if (account?.provider === 'google') {
           console.log('🔗 Google account linked:', {
+            userId: user?.id,
+            email: user?.email,
+            accountId: account?.providerAccountId,
+          });
+        }
+        
+        if (account?.provider === 'vk') {
+          console.log('🔗 VK account linked:', {
             userId: user?.id,
             email: user?.email,
             accountId: account?.providerAccountId,

@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { ExportButton } from '@/components/storage/export-button';
 import { Button } from '@/components/ui/button';
+import { PublishButton } from '@/components/social/publish-button';
 import {
   Dialog,
   DialogContent,
@@ -362,6 +363,13 @@ export function GenerationActions({
         imageName={`generation-${generationId}`}
         variant="ghost"
         size="sm"
+      />
+
+      {/* Публикация в соцсети */}
+      <PublishButton
+        contentType="GENERATION"
+        contentId={generationId}
+        imageUrl={upscaledUrl || imageUrl}
       />
     </div>
   );

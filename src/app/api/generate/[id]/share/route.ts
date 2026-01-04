@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db/prisma';
 import { randomBytes } from 'crypto';
+import { getServerBaseUrl } from '@/lib/base-url';
 
 /**
  * PATCH: Включить/выключить публичный доступ к генерации
@@ -58,7 +59,7 @@ export async function PATCH(
     });
 
     const shareUrl = shareToken 
-      ? `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/share/${shareToken}`
+      ? `${getServerBaseUrl()}/share/${shareToken}`
       : null;
 
     return NextResponse.json({

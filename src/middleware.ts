@@ -13,7 +13,8 @@ async function getSessionFromCookie(request: NextRequest) {
    *
    * getToken() умеет корректно расшифровать/проверить токен в Edge middleware.
    */
-  const secret = process.env.NEXTAUTH_SECRET;
+  // NextAuth/Auth.js: поддерживаем и AUTH_SECRET (v5), и NEXTAUTH_SECRET (старые гайды/совместимость)
+  const secret = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET;
   if (!secret) return null;
 
   // Пробуем все возможные имена cookie (Auth.js v5 и NextAuth v4)

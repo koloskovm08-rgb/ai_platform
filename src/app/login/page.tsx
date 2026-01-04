@@ -64,6 +64,8 @@ function LoginForm() {
   const [error, setError] = React.useState<string | null>(urlError);
   const [isGoogleLoading, setIsGoogleLoading] = React.useState(false);
   const [isGoogleAvailable, setIsGoogleAvailable] = React.useState<boolean | null>(null);
+  const [isVkLoading, setIsVkLoading] = React.useState(false);
+  const [isVkAvailable, setIsVkAvailable] = React.useState<boolean | null>(null);
   
   // Обновляем ошибку при изменении параметров URL
   React.useEffect(() => {
@@ -76,24 +78,27 @@ function LoginForm() {
     }
   }, [searchParams, getErrorMessage, error, urlError]);
 
-  // Проверяем доступность Google OAuth при монтировании компонента
+  // Проверяем доступность OAuth провайдеров при монтировании компонента
   React.useEffect(() => {
-    const checkGoogleProvider = async () => {
+    const checkOAuthProviders = async () => {
       try {
         const response = await fetch('/api/auth/providers');
         if (!response.ok) {
           setIsGoogleAvailable(false);
+          setIsVkAvailable(false);
           return;
         }
         const providers = await response.json();
         setIsGoogleAvailable(!!providers.google);
+        setIsVkAvailable(!!providers.vk);
       } catch (error) {
-        console.error('Failed to check Google provider:', error);
+        console.error('Failed to check OAuth providers:', error);
         setIsGoogleAvailable(false);
+        setIsVkAvailable(false);
       }
     };
     
-    checkGoogleProvider();
+    checkOAuthProviders();
   }, []);
 
   const {
@@ -201,6 +206,75 @@ function LoginForm() {
     }
   };
 
+  const handleVkSignIn = async () => {
+    // Проверяем доступность провайдера перед попыткой входа
+    if (isVkAvailable === false) {
+      setError('VK OAuth не настроен. Пожалуйста, используйте вход по email.');
+      return;
+    }
+
+    setIsVkLoading(true);
+    setError(null);
+
+    try {
+      // В NextAuth v5 для OAuth провайдеров нужно использовать прямой редирект
+      const result = await signIn('vk', { 
+        callbackUrl: '/',
+        redirect: false,
+      });
+      
+      // Проверяем результат
+      if (!result) {
+        console.error('VK sign in: no result returned');
+        setError('VK OAuth не настроен. Обратитесь к администратору.');
+        setIsVkLoading(false);
+        return;
+      }
+      
+      // Если результат содержит ошибку
+      if (result.error) {
+        console.error('VK sign in error:', result.error);
+        const errorMessages: Record<string, string> = {
+          Configuration: 'Ошибка конфигурации VK OAuth. Пожалуйста, используйте вход по email.',
+          AccessDenied: 'Доступ запрещен. Вы отклонили доступ к своему VK аккаунту.',
+          OAuthSignin: 'Ошибка входа через VK. Попробуйте позже или используйте вход по email.',
+          OAuthCallback: 'Ошибка обработки ответа от VK. Попробуйте еще раз.',
+          OAuthCreateAccount: 'Не удалось создать аккаунт через VK. Попробуйте регистрацию по email.',
+          Callback: 'Ошибка обработки ответа от VK. Попробуйте еще раз.',
+          Default: 'Произошла ошибка при входе через VK. Попробуйте еще раз.',
+        };
+        setError(errorMessages[result.error] || errorMessages.Default);
+        setIsVkLoading(false);
+        return;
+      }
+      
+      // Если есть URL для редиректа (OAuth flow)
+      if (result.url) {
+        window.location.href = result.url;
+        // Не сбрасываем loading, так как происходит редирект
+        return;
+      }
+      
+      // Если нет URL и нет ошибки, но результат ok: false
+      if (result.ok === false) {
+        console.error('VK sign in: signIn returned ok: false');
+        setError('VK OAuth недоступен. Пожалуйста, используйте вход по email.');
+        setIsVkLoading(false);
+        return;
+      }
+      
+      // Если нет URL, значит что-то пошло не так
+      console.error('VK sign in: no redirect URL returned', result);
+      setError('Не удалось начать процесс входа через VK. Проверьте настройки OAuth (VK_CLIENT_ID и VK_CLIENT_SECRET в .env.local).');
+      setIsVkLoading(false);
+    } catch (error) {
+      console.error('VK sign in error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка';
+      setError(`Произошла ошибка при входе через VK: ${errorMessage}. Проверьте настройки OAuth.`);
+      setIsVkLoading(false);
+    }
+  };
+
   return (
     <div className="flex min-h-screen items-center justify-center p-4">
       <Card className="glass-card w-full max-w-md shadow-xl">
@@ -225,7 +299,7 @@ function LoginForm() {
                 type="email"
                 placeholder="example@mail.com"
                 {...register('email')}
-                disabled={isLoading || isGoogleLoading}
+                disabled={isLoading || isGoogleLoading || isVkLoading}
                 aria-invalid={errors.email ? 'true' : 'false'}
               />
               {errors.email && (
@@ -250,7 +324,7 @@ function LoginForm() {
                 type="password"
                 placeholder="••••••••"
                 {...register('password')}
-                disabled={isLoading || isGoogleLoading}
+                disabled={isLoading || isGoogleLoading || isVkLoading}
                 aria-invalid={errors.password ? 'true' : 'false'}
               />
               {errors.password && (
@@ -270,8 +344,8 @@ function LoginForm() {
             </Button>
           </form>
 
-          {/* Показываем Google OAuth только если провайдер доступен */}
-          {isGoogleAvailable !== false && (
+          {/* Показываем OAuth провайдеры только если хотя бы один доступен */}
+          {(isGoogleAvailable !== false || isVkAvailable !== false) && (
             <>
               <div className="relative my-6">
                 <div className="absolute inset-0 flex items-center">
@@ -284,33 +358,63 @@ function LoginForm() {
                 </div>
               </div>
 
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full"
-                onClick={handleGoogleSignIn}
-                disabled={isLoading || isGoogleLoading || isGoogleAvailable === null}
-              >
-                {isGoogleLoading && (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              <div className="space-y-3">
+                {isGoogleAvailable !== false && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full"
+                    onClick={handleGoogleSignIn}
+                    disabled={isLoading || isGoogleLoading || isVkLoading || isGoogleAvailable === null}
+                  >
+                    {isGoogleLoading && (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    )}
+                    <svg
+                      className="mr-2 h-4 w-4"
+                      aria-hidden="true"
+                      focusable="false"
+                      data-prefix="fab"
+                      data-icon="google"
+                      role="img"
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 488 512"
+                    >
+                      <path
+                        fill="currentColor"
+                        d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 123 24.5 166.3 64.9l-67.5 64.9C258.5 52.6 94.3 52.6 94.3 256s164.2 203.4 152.5 183.1c26.2-9.6 48.2-25.1 65.7-43.4H248v-96h240v96z"
+                      />
+                    </svg>
+                    Войти через Google
+                  </Button>
                 )}
-                <svg
-                  className="mr-2 h-4 w-4"
-                  aria-hidden="true"
-                  focusable="false"
-                  data-prefix="fab"
-                  data-icon="google"
-                  role="img"
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 488 512"
-                >
-                  <path
-                    fill="currentColor"
-                    d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 123 24.5 166.3 64.9l-67.5 64.9C258.5 52.6 94.3 52.6 94.3 256s164.2 203.4 152.5 183.1c26.2-9.6 48.2-25.1 65.7-43.4H248v-96h240v96z"
-                  />
-                </svg>
-                Войти через Google
-              </Button>
+
+                {isVkAvailable !== false && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full"
+                    onClick={handleVkSignIn}
+                    disabled={isLoading || isGoogleLoading || isVkLoading || isVkAvailable === null}
+                  >
+                    {isVkLoading && (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    )}
+                    <svg
+                      className="mr-2 h-4 w-4"
+                      aria-hidden="true"
+                      focusable="false"
+                      role="img"
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
+                    >
+                      <path d="M12.785 16.241s.288-.032.436-.194c.136-.148.132-.426.132-.426s-.02-1.299.567-1.489c.579-.187 1.322 1.256 2.11 1.811.596.42 1.05.328 1.05.328l2.108-.03s1.103-.07.579-.963c-.043-.073-.306-.663-1.575-1.876-1.328-1.27-1.15-1.064.449-3.259.973-1.335 1.362-2.148 1.24-2.497-.116-.333-.832-.245-.832-.245l-2.372.015s-.176-.025-.307.056c-.128.079-.21.263-.21.263s-.377 1.036-.88 1.918c-1.059 1.86-1.483 1.959-1.657 1.843-.404-.27-.303-1.083-.303-1.662 0-1.806.266-2.559-.518-2.754-.26-.065-.452-.108-1.117-.115-.853-.009-1.575.003-1.984.209-.272.137-.482.443-.354.461.158.022.516.1.706.366.245.344.236 1.118.236 1.118s.141 2.127-.329 2.391c-.324.182-.768-.189-1.722-1.88-.488-.864-.857-1.82-.857-1.82s-.071-.182-.198-.279c-.154-.118-.37-.156-.37-.156l-2.254.015s-.338.01-.462.161c-.11.134-.009.412-.009.412s1.771 4.269 3.773 6.419c1.835 1.973 3.917 1.843 3.917 1.843h.945z"/>
+                    </svg>
+                    Войти через ВКонтакте
+                  </Button>
+                )}
+              </div>
             </>
           )}
         </CardContent>

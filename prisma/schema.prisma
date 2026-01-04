@@ -62,6 +62,46 @@ model Account {
   @@map("accounts")
 }
 
+// История и планирование публикаций в соцсети (VK/Telegram)
+model SocialMediaPost {
+  id          String           @id @default(cuid())
+  userId      String
+
+  // Контент, который публикуем (полиморфная ссылка: без Prisma relation)
+  contentId   String
+  contentType SocialContentType
+
+  // Куда публикуем
+  platform    SocialPlatform
+  status      SocialPostStatus @default(DRAFT)
+
+  // Что публикуем (снапшот на момент отправки)
+  imageUrl    String?          @db.Text
+  caption     String?          @db.Text
+
+  // Планирование / фактическая публикация
+  scheduledFor DateTime?
+  publishedAt  DateTime?
+
+  // Данные результата публикации
+  externalId  String?          // id поста/сообщения на стороне платформы
+  error       String?          @db.Text
+  metadata    Json?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("social_media_posts")
+  @@index([userId])
+  @@index([platform])
+  @@index([status])
+  @@index([scheduledFor])
+  @@index([status, scheduledFor])
+  @@unique([platform, externalId])
+}
+
 // NextAuth Session модель
 model Session {
   id           String   @id @default(cuid())
@@ -279,6 +319,29 @@ enum TemplateType {
   SOCIAL_POST
   FLYER
   OTHER
+}
+
+// Соцсети
+enum SocialPlatform {
+  VK
+  TELEGRAM
+}
+
+// Типы контента, который мы публикуем
+enum SocialContentType {
+  GENERATION
+  EDIT
+  BUSINESS_CARD_PROJECT
+}
+
+// Статусы публикации
+enum SocialPostStatus {
+  DRAFT
+  SCHEDULED
+  PUBLISHING
+  PUBLISHED
+  FAILED
+  CANCELED
 }
 
 // Проекты визиток

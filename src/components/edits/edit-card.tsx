@@ -14,6 +14,7 @@ import {
   ArrowRight,
   Loader2,
 } from 'lucide-react';
+import { PublishButton } from '@/components/social/publish-button';
 import { formatDistanceToNow } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import {
@@ -135,6 +136,14 @@ export function EditCard({ edit, onDelete }: EditCardProps) {
               Открыть
             </Link>
           </Button>
+
+          <PublishButton
+            contentType="EDIT"
+            contentId={edit.id}
+            imageUrl={edit.editedImageUrl}
+            buttonVariant="default"
+            buttonSize="sm"
+          />
 
           <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
             <DialogTrigger asChild>

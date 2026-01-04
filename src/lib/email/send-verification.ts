@@ -11,6 +11,7 @@
 
 import crypto from 'crypto';
 import { prisma } from '@/lib/db/prisma';
+import { getServerBaseUrl } from '@/lib/base-url';
 
 /**
  * Генерация токена верификации
@@ -72,7 +73,7 @@ export async function verifyToken(token: string): Promise<string | null> {
  * В production замените console.log на реальную отправку email
  */
 export async function sendVerificationEmail(email: string, token: string): Promise<void> {
-  const verificationUrl = `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/verify-email?token=${token}`;
+  const verificationUrl = `${getServerBaseUrl()}/verify-email?token=${token}`;
 
   // TODO: Интеграция с Resend или другим сервисом
   // Пример с Resend:
@@ -152,7 +153,7 @@ export async function verifyPasswordResetToken(token: string): Promise<string | 
  * Отправка email со ссылкой для сброса пароля
  */
 export async function sendPasswordResetEmail(email: string, token: string): Promise<void> {
-  const resetUrl = `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/reset-password?token=${token}`;
+  const resetUrl = `${getServerBaseUrl()}/reset-password?token=${token}`;
 
   // TODO: Интеграция с Resend
   // Временно: выводим в консоль

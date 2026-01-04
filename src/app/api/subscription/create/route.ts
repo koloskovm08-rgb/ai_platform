@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { createPayment, getPaymentDescription, getPlanPrice } from '@/lib/payment/yookassa';
 import { z } from 'zod';
+import { getServerBaseUrl } from '@/lib/base-url';
 
 const createSubscriptionSchema = z.object({
   plan: z.enum(['PRO', 'PREMIUM']),
@@ -39,7 +40,7 @@ export async function POST(request: NextRequest) {
     const description = getPaymentDescription(plan);
 
     // Создать платеж в ЮKassa
-    const baseUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+    const baseUrl = getServerBaseUrl();
     const payment = await createPayment({
       amount,
       description,

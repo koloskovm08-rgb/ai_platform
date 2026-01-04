@@ -17,6 +17,7 @@ const envSchema = z.object({
   // NextAuth
   NEXTAUTH_URL: z.string().url('NEXTAUTH_URL должен быть валидным URL').optional(),
   NEXTAUTH_SECRET: z.string().min(32, 'NEXTAUTH_SECRET должен быть минимум 32 символа').optional(),
+  AUTH_SECRET: z.string().min(32, 'AUTH_SECRET должен быть минимум 32 символа').optional(),
   
   // AI Services
   OPENAI_API_KEY: z.string().min(1, 'OPENAI_API_KEY обязателен').optional(),
@@ -93,22 +94,30 @@ export function getEnv(key: keyof Env, fallback?: string): string {
  * Используется при старте приложения для предупреждения о проблемах
  */
 export function checkRequiredEnv(): void {
-  const requiredVars = [
-    'DATABASE_URL',
-    'NEXTAUTH_URL',
-    'NEXTAUTH_SECRET',
-  ];
-
   const missing: string[] = [];
   const invalid: string[] = [];
 
-  for (const varName of requiredVars) {
-    const value = process.env[varName];
-    if (!value) {
-      missing.push(varName);
-    } else if (varName.includes('URL') && !value.startsWith('http')) {
-      invalid.push(varName);
-    }
+  // Базовый URL: принимаем любой из источников
+  const baseUrl =
+    process.env.NEXTAUTH_URL ||
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined);
+
+  if (!process.env.DATABASE_URL) {
+    missing.push('DATABASE_URL');
+  }
+
+  if (!baseUrl) {
+    missing.push('NEXTAUTH_URL (или NEXT_PUBLIC_SITE_URL / VERCEL_URL)');
+  } else if (!baseUrl.startsWith('http')) {
+    invalid.push('Base URL');
+  }
+
+  const authSecret = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET;
+  if (!authSecret) {
+    missing.push('AUTH_SECRET (или NEXTAUTH_SECRET)');
+  } else if (authSecret.length < 32) {
+    invalid.push('AUTH_SECRET/NEXTAUTH_SECRET (минимум 32 символа)');
   }
 
   if (missing.length > 0 || invalid.length > 0) {

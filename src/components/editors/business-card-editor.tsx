@@ -45,6 +45,7 @@ import { QRCodeGenerator } from './qr-code-generator';
 import { useCustomCursor, type ToolType } from './custom-cursors';
 import { setupCanvasFeedback, animateObjectIn, enhanceObjectControls } from './canvas-animations';
 import { useAdvancedCanvasTools } from '@/hooks/use-advanced-canvas-tools';
+import { PublishDialog } from '@/components/social/publish-dialog';
 
 export type CardOrientation = 'horizontal' | 'vertical';
 export type CardSize = 'standard' | 'european' | 'custom';
@@ -102,6 +103,8 @@ export function BusinessCardEditor() {
   const [currentPageId, setCurrentPageId] = React.useState<string>('page-1');
   const [exportDialogOpen, setExportDialogOpen] = React.useState(false);
   const [mockup3dOpen, setMockup3dOpen] = React.useState(false);
+  const [publishDialogOpen, setPublishDialogOpen] = React.useState(false);
+  const [publishImageUrl, setPublishImageUrl] = React.useState<string | null>(null);
   
   // Контактная информация
   const [name, setName] = React.useState('');
@@ -466,6 +469,20 @@ export function BusinessCardEditor() {
       setIsSaving(false);
     }
   }, [canvas, session, projectName, projectId, cardSize, orientation, customWidth, customHeight, finalWidth, finalHeight, canvasWidth, canvasHeight, getCanvasData, getThumbnail, toast]);
+
+  const openPublishDialog = async () => {
+    if (!session?.user?.id) {
+      toast.error('Необходима авторизация');
+      return;
+    }
+    if (!projectId) {
+      toast.error('Сначала сохрани проект, чтобы его можно было публиковать');
+      return;
+    }
+    const thumb = await getThumbnail();
+    setPublishImageUrl(thumb);
+    setPublishDialogOpen(true);
+  };
 
   const loadProject = React.useCallback(async (projectId: string) => {
     if (!canvas || !session?.user?.id) return;
@@ -1127,6 +1144,16 @@ export function BusinessCardEditor() {
               <FolderOpen className="mr-2 h-4 w-4" />
               Загрузить проект
             </Button>
+
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => void openPublishDialog()}
+              disabled={!session || !projectId}
+              title={!projectId ? 'Сначала сохрани проект' : undefined}
+            >
+              Опубликовать в соцсети
+            </Button>
           </CardContent>
         </Card>
 
@@ -1512,6 +1539,18 @@ export function BusinessCardEditor() {
         cardWidth={finalWidth}
         cardHeight={finalHeight}
       />
+
+      {/* Диалог публикации */}
+      {projectId && (
+        <PublishDialog
+          open={publishDialogOpen}
+          onOpenChange={setPublishDialogOpen}
+          contentType="BUSINESS_CARD_PROJECT"
+          contentId={projectId}
+          // thumbnailUrl у проекта — часто data: URL. Для Telegram PublishDialog сам загрузит в Cloudinary при необходимости.
+          imageUrl={publishImageUrl ?? undefined}
+        />
+      )}
 
       {/* 3D Mockup Preview */}
       <Mockup3DPreview
