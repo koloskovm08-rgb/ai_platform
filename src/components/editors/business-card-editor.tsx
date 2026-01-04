@@ -1020,7 +1020,7 @@ export function BusinessCardEditor() {
 
   return (
     <>
-    <div className="flex h-screen overflow-hidden">
+    <div className="flex h-screen overflow-hidden relative">
       {/* Новая современная панель инструментов (слева, fixed) */}
       <ModernToolbar
         onUndo={undo}
@@ -1125,7 +1125,7 @@ export function BusinessCardEditor() {
       />
 
       {/* Основной контент с отступом для панели */}
-      <div className="flex-1 ml-[280px] flex gap-4 p-4 overflow-auto">
+      <div className="flex-1 ml-[280px] flex gap-4 p-4 overflow-auto relative z-0">
         {/* Canvas */}
         <div className="flex-1">
           {/* Расширенный редактор текста */}

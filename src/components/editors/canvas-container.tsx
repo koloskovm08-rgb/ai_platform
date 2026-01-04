@@ -90,6 +90,7 @@ export function CanvasContainer({
         'rounded-lg p-2 min-h-[400px]',
         'transition-all duration-300',
         'overflow-hidden', // Предотвращаем выход за границы
+        'isolate', // Создаем новый stacking context
         className
       )}
       style={{
