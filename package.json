@@ -7,7 +7,7 @@
     "dev:turbo": "next dev --turbo",
     "clean": "powershell -ExecutionPolicy Bypass -File ./scripts/clean-build.ps1",
     "fix-permissions": "powershell -ExecutionPolicy Bypass -File ./scripts/fix-permissions.ps1",
-    "build": "prisma generate && next build",
+    "build": "prisma generate && node --max-old-space-size=4096 ./node_modules/next/dist/bin/next build",
     "build:clean": "npm run clean && npm run build",
     "build:win": "set DISABLE_WEBPACK_CACHE=true && npm run build",
     "start": "next start",
@@ -17,9 +17,9 @@
     "db:migrate": "prisma migrate deploy",
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
-    "analyze": "ANALYZE=true next build",
-    "analyze:server": "BUNDLE_ANALYZE=server next build",
-    "analyze:browser": "BUNDLE_ANALYZE=browser next build"
+    "analyze": "ANALYZE=true node --max-old-space-size=4096 ./node_modules/next/dist/bin/next build",
+    "analyze:server": "BUNDLE_ANALYZE=server node --max-old-space-size=4096 ./node_modules/next/dist/bin/next build",
+    "analyze:browser": "BUNDLE_ANALYZE=browser node --max-old-space-size=4096 ./node_modules/next/dist/bin/next build"
   },
   "engines": {
     "node": ">=18.0.0 <23"

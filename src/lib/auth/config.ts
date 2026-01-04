@@ -33,8 +33,23 @@ interface VKTokenResponse {
   email?: string;
 }
 
+type VKTokenRequestContext = {
+  params: { redirect_uri?: string; code?: string } & Record<string, string | undefined>;
+  provider: { token?: { url?: string } };
+};
+
+type VKUserinfoRequestContext = {
+  tokens: { access_token?: string } & Record<string, unknown>;
+  provider: { userinfo?: { url?: string } };
+};
+
 // Кастомный VK OAuth провайдер
 function VKProvider(options: OAuthUserConfig<VKProfile>): OAuthConfig<VKProfile> {
+  // В типах NextAuth `checks` для OAuth2 не включает "nonce",
+  // но `OAuthUserConfig` может его допускать. Чтобы не ломать сборку,
+  // исключаем `checks` из spread-опций и используем нашу конфигурацию.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { checks: _checks, ...restOptions } = options;
   return {
     id: 'vk',
     name: 'VK',
@@ -52,7 +67,10 @@ function VKProvider(options: OAuthUserConfig<VKProfile>): OAuthConfig<VKProfile>
     },
     token: {
       url: 'https://oauth.vk.com/access_token',
-      async request({ params, provider }) {
+      async request({ params, provider }: VKTokenRequestContext) {
+        if (!options.clientId || !options.clientSecret) {
+          throw new Error('VK OAuth: clientId and clientSecret are required');
+        }
         const url = new URL(provider.token?.url as string);
         url.searchParams.append('client_id', options.clientId);
         url.searchParams.append('client_secret', options.clientSecret);
@@ -71,7 +89,7 @@ function VKProvider(options: OAuthUserConfig<VKProfile>): OAuthConfig<VKProfile>
     },
     userinfo: {
       url: 'https://api.vk.com/method/users.get',
-      async request({ tokens, provider }) {
+      async request({ tokens, provider }: VKUserinfoRequestContext) {
         const url = new URL(provider.userinfo?.url as string);
         url.searchParams.append('access_token', tokens.access_token as string);
         url.searchParams.append('fields', 'photo_200');
@@ -100,7 +118,8 @@ function VKProvider(options: OAuthUserConfig<VKProfile>): OAuthConfig<VKProfile>
         id: String(profile.id),
         name: `${profile.first_name} ${profile.last_name}`,
         email: profile.email || `vk${profile.id}@vk.placeholder.com`, // Фолбэк если нет email
-        image: profile.photo_200,
+        image: profile.photo_200 ?? null,
+        role: UserRole.USER,
       };
     },
     style: {
@@ -108,7 +127,7 @@ function VKProvider(options: OAuthUserConfig<VKProfile>): OAuthConfig<VKProfile>
       bg: '#0077FF',
       text: '#fff',
     },
-    ...options,
+    ...restOptions,
   };
 }
 

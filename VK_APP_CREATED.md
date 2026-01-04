@@ -36,8 +36,16 @@
 
 ```env
 # VK OAuth Configuration
-VK_CLIENT_ID="54414421"
-VK_CLIENT_SECRET="вставь_сюда_защищённый_ключ_после_подтверждения_профиля"
+Type error: Binding element 'params' implicitly has an 'any' type.
+  53 |     token: {
+  54 |       url: 'https://oauth.vk.com/access_token',
+> 55 |       async request({ params, provider }) {
+     |                       ^
+  56 |         const url = new URL(provider.token?.url as string);
+  57 |         url.searchParams.append('client_id', options.clientId);
+  58 |         url.searchParams.append('client_secret', options.clientSecret);
+Next.js build worker exited with code: 1 and signal: null
+Error: Command "npm run build" exited with 1
 ```
 
 ---
@@ -97,4 +105,6 @@ VK_CLIENT_SECRET="вставь_сюда_защищённый_ключ_после
 ---
 
 **Приложение готово! Осталось только получить ключ и добавить localhost для разработки.** 🎉
+
+
 
