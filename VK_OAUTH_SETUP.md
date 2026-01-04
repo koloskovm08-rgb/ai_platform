@@ -110,7 +110,9 @@ VK_CLIENT_SECRET="ваш_secure_key_здесь"
 # Существующие настройки NextAuth
 NEXTAUTH_URL="http://localhost:3000"
 AUTH_SECRET="ваш_секретный_ключ"
-DATABASE_URL="file:./dev.db"
+# PostgreSQL (Prisma настроен на postgresql в prisma/schema.prisma)
+# Формат: postgresql://USER:PASSWORD@HOST:5432/DBNAME?schema=public
+DATABASE_URL="postgresql://postgres:password@localhost:5432/artigen?schema=public"
 
 # Google OAuth (если есть)
 GOOGLE_CLIENT_ID="..."

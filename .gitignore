@@ -37,7 +37,9 @@ yarn-error.log*
 next-env.d.ts
 
 # prisma
-prisma/migrations
+# Важно: миграции должны храниться в репозитории, иначе `prisma migrate deploy`
+# на сервере/в Vercel не сможет поднять схему БД.
+prisma/dev.db
 
 # IDE
 .vscode
