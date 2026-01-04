@@ -24,11 +24,13 @@ export function withPerformanceOptimization<P extends object>(
 
   // В development добавляем мониторинг
   if (process.env.NODE_ENV === 'development') {
-    return (props: P) => {
+    const DevWrapper = (props: P) => {
       useRenderTime(componentName);
       useWhyDidYouUpdate(componentName, props as Record<string, any>);
       return <OptimizedComponent {...props} />;
     };
+    DevWrapper.displayName = `DevWrapper(${componentName})`;
+    return DevWrapper;
   }
 
   return OptimizedComponent;
@@ -129,11 +131,13 @@ export function withLazyLoading<P extends object>(
 ) {
   const LazyComponent = React.lazy(importFunc);
 
-  return (props: P) => (
+  const LazyWrapper = (props: P) => (
     <React.Suspense fallback={fallback}>
       <LazyComponent {...props} />
     </React.Suspense>
   );
+  LazyWrapper.displayName = 'LazyWrapper';
+  return LazyWrapper;
 }
 
 /**
@@ -201,7 +205,7 @@ export function useStableCallback<T extends (...args: any[]) => any>(
  * Хук для мемоизации сложных вычислений
  */
 export function useDeepMemo<T>(factory: () => T, deps: React.DependencyList): T {
-  const ref = React.useRef<{ deps: React.DependencyList; value: T }>();
+  const ref = React.useRef<{ deps: React.DependencyList; value: T } | undefined>(undefined);
 
   if (!ref.current || !deepEqual(ref.current.deps, deps)) {
     ref.current = {

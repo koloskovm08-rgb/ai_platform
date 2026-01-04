@@ -37,7 +37,7 @@ export function useRenderTime(componentName: string, enabled: boolean = process.
  * Показывает, какие пропсы изменились и вызвали ререндер
  */
 export function useWhyDidYouUpdate(name: string, props: Record<string, any>) {
-  const previousProps = useRef<Record<string, any>>();
+  const previousProps = useRef<Record<string, any> | undefined>(undefined);
 
   useEffect(() => {
     if (previousProps.current) {
