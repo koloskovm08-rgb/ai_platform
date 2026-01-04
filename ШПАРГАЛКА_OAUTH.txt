@@ -1,0 +1,108 @@
+═══════════════════════════════════════════════════════════════
+  🔧 ШПАРГАЛКА ДЛЯ НАСТРОЙКИ GOOGLE OAUTH
+═══════════════════════════════════════════════════════════════
+
+📋 AUTHORIZED REDIRECT URI (для Google Console)
+───────────────────────────────────────────────────────────────
+https://koloskovm08-rgb-aiplatform.vercel.app/api/auth/callback/google
+
+⚠️ ВАЖНО: Копируй ТОЧНО, без пробелов!
+
+
+📋 ТЕКУЩИЕ ЗНАЧЕНИЯ (из .env.local)
+───────────────────────────────────────────────────────────────
+GOOGLE_CLIENT_ID:
+1024578853768-el77m1mddsgpeqb5sg7d6hinh22l69r0.apps.googleusercontent.com
+
+GOOGLE_CLIENT_SECRET:
+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
+
+
+📋 ДЛЯ ЛОКАЛЬНОЙ РАЗРАБОТКИ (опционально)
+───────────────────────────────────────────────────────────────
+http://localhost:3000/api/auth/callback/google
+
+
+═══════════════════════════════════════════════════════════════
+  📝 БЫСТРЫЕ ССЫЛКИ
+═══════════════════════════════════════════════════════════════
+
+Google Cloud Console:
+https://console.cloud.google.com/
+
+OAuth Consent Screen:
+https://console.cloud.google.com/apis/credentials/consent
+
+Credentials:
+https://console.cloud.google.com/apis/credentials
+
+Vercel Dashboard:
+https://vercel.com/
+
+Vercel Environment Variables:
+https://vercel.com/koloskovm08-rgb/koloskovm08-rgb-aiplatform/settings/environment-variables
+
+
+═══════════════════════════════════════════════════════════════
+  ✅ КОНТРОЛЬНЫЙ СПИСОК
+═══════════════════════════════════════════════════════════════
+
+□ Проект выбран в Google Cloud Console
+□ OAuth consent screen настроен
+  □ Test users добавлены (твой email)
+  ИЛИ
+  □ Приложение опубликовано (PUBLISH APP)
+□ Authorized redirect URI добавлен (точный URL)
+□ Client ID и Secret скопированы
+□ Переменные в Vercel проверены
+□ Проект переразвёрнут (если менял переменные)
+□ Вход через Google работает ✅
+
+
+═══════════════════════════════════════════════════════════════
+  🆘 ТИПИЧНЫЕ ОШИБКИ И РЕШЕНИЯ
+═══════════════════════════════════════════════════════════════
+
+❌ "redirect_uri_mismatch"
+   → Неправильный Redirect URI в Google Console
+   → Проверь, что URL точно совпадает (без пробелов!)
+
+❌ "Access blocked: Authorization Error"
+   → Приложение в Testing mode
+   → Добавь свой email в Test users
+   → ИЛИ опубликуй приложение (PUBLISH APP)
+
+❌ "Configuration"
+   → Client Secret не совпадает с Vercel
+   → Обнови переменные в Vercel
+   → Переразверни проект
+
+❌ Кнопка Google не появляется
+   → Очисти кеш браузера (Ctrl+Shift+R)
+   → Проверь /api/auth/providers
+
+
+═══════════════════════════════════════════════════════════════
+  🧪 ПРОВЕРКА ПОСЛЕ НАСТРОЙКИ
+═══════════════════════════════════════════════════════════════
+
+1. Health check:
+   https://koloskovm08-rgb-aiplatform.vercel.app/api/auth/health
+   
+   Должно быть: "configured": true
+
+2. Providers list:
+   https://koloskovm08-rgb-aiplatform.vercel.app/api/auth/providers
+   
+   Должен быть объект "google": {...}
+
+3. Страница входа:
+   https://koloskovm08-rgb-aiplatform.vercel.app/login
+   
+   Должна быть кнопка "Войти через Google"
+
+
+═══════════════════════════════════════════════════════════════
+Создано: 4 января 2026
+═══════════════════════════════════════════════════════════════
+
