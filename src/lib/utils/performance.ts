@@ -173,11 +173,183 @@ export function checkBrowserSupport(): {
   };
 }
 
+// Интерфейс для старой совместимости
+export interface DevicePerformance {
+  isLowEnd: boolean;
+  hardwareConcurrency: number;
+  deviceMemory?: number;
+  connectionType?: string;
+  score: number;
+}
+
 /**
- * Получает информацию о производительности устройства
+ * Определяет производительность устройства на основе доступных API
+ */
+export function detectDevicePerformance(): DevicePerformance {
+  if (typeof window === 'undefined') {
+    return {
+      isLowEnd: false,
+      hardwareConcurrency: 4,
+      score: 50,
+    };
+  }
+
+  let score = 50;
+  const hardwareConcurrency = navigator.hardwareConcurrency || 2;
+  
+  interface NavigatorWithMemory extends Navigator {
+    deviceMemory?: number;
+    connection?: NetworkInformation;
+    mozConnection?: NetworkInformation;
+    webkitConnection?: NetworkInformation;
+  }
+  interface NetworkInformation {
+    effectiveType?: string;
+    downlink?: number;
+  }
+  const nav = navigator as NavigatorWithMemory;
+  const deviceMemory = nav.deviceMemory;
+  const connection = nav.connection || nav.mozConnection || nav.webkitConnection;
+
+  if (hardwareConcurrency >= 8) {
+    score += 20;
+  } else if (hardwareConcurrency >= 4) {
+    score += 10;
+  } else if (hardwareConcurrency <= 2) {
+    score -= 20;
+  }
+
+  if (deviceMemory) {
+    if (deviceMemory >= 8) {
+      score += 20;
+    } else if (deviceMemory >= 4) {
+      score += 10;
+    } else if (deviceMemory <= 2) {
+      score -= 20;
+    }
+  }
+
+  if (connection) {
+    const effectiveType = connection.effectiveType;
+    if (effectiveType === '4g') {
+      score += 5;
+    } else if (effectiveType === '3g' || effectiveType === '2g') {
+      score -= 10;
+    }
+  }
+
+  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+    navigator.userAgent
+  );
+  if (isMobile) {
+    score -= 10;
+  }
+
+  score = Math.max(0, Math.min(100, score));
+  const isLowEnd = score < 40;
+
+  return {
+    isLowEnd,
+    hardwareConcurrency,
+    deviceMemory,
+    connectionType: connection?.effectiveType,
+    score,
+  };
+}
+
+/**
+ * Проверяет, нужно ли отключить анимации для данного устройства
+ */
+export function shouldDisableAnimations(): boolean {
+  if (typeof window !== 'undefined') {
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReducedMotion) {
+      return true;
+    }
+
+    const performance = detectDevicePerformance();
+    return performance.isLowEnd;
+  }
+
+  return false;
+}
+
+/**
+ * Определяет оптимальное количество частиц для анимации
+ */
+export function getOptimalParticleCount(): number {
+  const performance = detectDevicePerformance();
+  
+  if (performance.isLowEnd) {
+    return 10;
+  }
+  
+  if (performance.score < 60) {
+    return 20;
+  }
+  
+  if (performance.score < 80) {
+    return 30;
+  }
+  
+  return 40;
+}
+
+/**
+ * Определяет оптимальное количество градиентных орбов
+ */
+export function getOptimalOrbCount(): number {
+  const performance = detectDevicePerformance();
+  
+  if (performance.isLowEnd) {
+    return 0;
+  }
+  
+  if (performance.score < 60) {
+    return 1;
+  }
+  
+  if (performance.score < 80) {
+    return 2;
+  }
+  
+  return 4;
+}
+
+/**
+ * Проверяет, можно ли безопасно загрузить тяжелый компонент
+ */
+export function canLoadHeavyComponent(): boolean {
+  const performance = detectDevicePerformance();
+  return performance.score >= 30;
+}
+
+/**
+ * Получает сохраненную настройку пользователя для анимаций
+ */
+export function getAnimationPreference(): boolean | null {
+  if (typeof window === 'undefined') return null;
+  
+  const saved = localStorage.getItem('disableAnimations');
+  if (saved === null) return null;
+  
+  return saved === 'true';
+}
+
+/**
+ * Сохраняет настройку пользователя для анимаций
+ */
+export function setAnimationPreference(disable: boolean): void {
+  if (typeof window === 'undefined') return;
+  
+  localStorage.setItem('disableAnimations', disable.toString());
+}
+
+/**
+ * Получает информацию о производительности устройства (новая версия)
  */
 export function getDevicePerformance(): {
-  memory?: number; // GB
+  memory?: number;
   cores?: number;
   connection?: string;
   devicePixelRatio: number;
@@ -192,33 +364,15 @@ export function getDevicePerformance(): {
     };
   }
 
-  // @ts-ignore - navigator.deviceMemory не во всех браузерах
-  const memory = navigator.deviceMemory;
-  // @ts-ignore - navigator.hardwareConcurrency
-  const cores = navigator.hardwareConcurrency;
-  // @ts-ignore - navigator.connection
-  const connection = navigator.connection?.effectiveType;
+  const perf = detectDevicePerformance();
   
-  const devicePixelRatio = window.devicePixelRatio || 1;
-  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-    navigator.userAgent
-  );
-
-  // Определяем "слабое" устройство
-  const isLowEnd = 
-    (memory && memory < 4) || // Меньше 4GB RAM
-    (cores && cores < 4) || // Меньше 4 ядер
-    connection === 'slow-2g' ||
-    connection === '2g' ||
-    isMobile;
-
   return {
-    memory,
-    cores,
-    connection,
-    devicePixelRatio,
-    isMobile,
-    isLowEnd,
+    memory: perf.deviceMemory,
+    cores: perf.hardwareConcurrency,
+    connection: perf.connectionType,
+    devicePixelRatio: window.devicePixelRatio || 1,
+    isMobile: /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent),
+    isLowEnd: perf.isLowEnd,
   };
 }
 
