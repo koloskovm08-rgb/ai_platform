@@ -278,8 +278,7 @@ if (googleClientId && googleClientSecret && googleClientId.trim() !== '' && goog
       GoogleProvider({
         clientId: googleClientId,
         clientSecret: googleClientSecret,
-        // Упрощенная конфигурация для NextAuth v5
-        // Параметры authorization не нужны, NextAuth v5 обрабатывает это автоматически
+        allowDangerousEmailAccountLinking: true,
       })
     );
     const nextAuthUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
