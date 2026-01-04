@@ -27,12 +27,21 @@ export function useCache<T>(
   const fetcherRef = useRef(fetcher);
   fetcherRef.current = fetcher;
 
+  // Используем ref для staleTime и cacheTime, чтобы избежать лишних пересозданий fetchData
+  const staleTimeRef = useRef(staleTime);
+  const cacheTimeRef = useRef(cacheTime);
+  
+  useEffect(() => {
+    staleTimeRef.current = staleTime;
+    cacheTimeRef.current = cacheTime;
+  }, [staleTime, cacheTime]);
+
   const fetchData = useCallback(async (force = false) => {
     const cached = cache.get(key);
     const now = Date.now();
 
     // Проверяем кэш
-    if (!force && cached && (now - cached.timestamp) < staleTime) {
+    if (!force && cached && (now - cached.timestamp) < staleTimeRef.current) {
       setData(cached.data as T);
       setIsLoading(false);
       return cached.data as T;
@@ -56,10 +65,10 @@ export function useCache<T>(
       // Планируем удаление из кэша
       setTimeout(() => {
         const entry = cache.get(key);
-        if (entry && (Date.now() - entry.timestamp) >= cacheTime) {
+        if (entry && (Date.now() - entry.timestamp) >= cacheTimeRef.current) {
           cache.delete(key);
         }
-      }, cacheTime);
+      }, cacheTimeRef.current);
 
       return result;
     } catch (err) {
@@ -69,7 +78,7 @@ export function useCache<T>(
       setIsLoading(false);
       setIsValidating(false);
     }
-  }, [key, staleTime, cacheTime]);
+  }, [key]);
 
   const mutate = useCallback(async (updater?: (data: T | null) => T | Promise<T>) => {
     if (updater) {
@@ -88,7 +97,8 @@ export function useCache<T>(
 
   useEffect(() => {
     fetchData();
-  }, [key, fetchData]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key]); // fetchData пересоздаётся только при изменении key
 
   return {
     data,

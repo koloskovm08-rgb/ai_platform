@@ -24,14 +24,16 @@ export function ToolbarSection({
   defaultOpen = true,
   className,
 }: ToolbarSectionProps) {
-  const { expandedSections, toggleSection } = useEditorToolbarStore();
+  const { expandedSections, toggleSection, setSectionExpanded } = useEditorToolbarStore();
   const isExpanded = expandedSections.has(id);
 
+  // Инициализация только один раз при монтировании
   React.useEffect(() => {
     if (defaultOpen && !expandedSections.has(id)) {
-      toggleSection(id);
+      setSectionExpanded(id, true);
     }
-  }, [defaultOpen, expandedSections, id, toggleSection]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div

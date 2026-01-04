@@ -21,36 +21,40 @@ export function useAutoSave({
   const lastSaveRef = useRef<number>(0);
   const isSavingRef = useRef(false);
   const dataRef = useRef(data);
+  const onSaveRef = useRef(onSave);
+  const enabledRef = useRef(enabled);
 
-  // Обновляем ref при изменении data
+  // Обновляем refs при изменении пропсов
   useEffect(() => {
     dataRef.current = data;
-  }, [data]);
+    onSaveRef.current = onSave;
+    enabledRef.current = enabled;
+  }, [data, onSave, enabled]);
 
   // Debounced сохранение при изменении данных
-  const debouncedSave = useDebounce(
-    useCallback(async () => {
-      if (!enabled || isSavingRef.current) return;
+  const saveFunction = useCallback(async () => {
+    if (!enabledRef.current || isSavingRef.current) return;
 
-      try {
-        isSavingRef.current = true;
-        await onSave(dataRef.current);
-        lastSaveRef.current = Date.now();
-      } catch (error) {
-        console.error('Auto-save error:', error);
-      } finally {
-        isSavingRef.current = false;
-      }
-    }, [enabled, onSave]),
-    debounceMs
-  );
+    try {
+      isSavingRef.current = true;
+      await onSaveRef.current(dataRef.current);
+      lastSaveRef.current = Date.now();
+    } catch (error) {
+      console.error('Auto-save error:', error);
+    } finally {
+      isSavingRef.current = false;
+    }
+  }, []);
+
+  const debouncedSave = useDebounce(saveFunction, debounceMs);
 
   // Сохранение при изменении данных
   useEffect(() => {
     if (enabled && data) {
       debouncedSave();
     }
-  }, [data, enabled, debouncedSave]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data]); // Вызываем только при изменении data
 
   // Периодическое сохранение
   useEffect(() => {
@@ -61,7 +65,7 @@ export function useAutoSave({
       if (timeSinceLastSave >= interval && !isSavingRef.current) {
         try {
           isSavingRef.current = true;
-          await onSave(dataRef.current);
+          await onSaveRef.current(dataRef.current);
           lastSaveRef.current = Date.now();
         } catch (error) {
           console.error('Auto-save error:', error);
@@ -72,7 +76,7 @@ export function useAutoSave({
     }, interval);
 
     return () => clearInterval(intervalId);
-  }, [enabled, interval, onSave]);
+  }, [enabled, interval]);
 
   // Сохранение при закрытии страницы
   useEffect(() => {

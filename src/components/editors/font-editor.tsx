@@ -116,8 +116,10 @@ export function FontEditor({ canvas, onUpdate, className }: FontEditorProps) {
         canvas.off('selection:updated', updateFromSelection);
         canvas.off('object:modified', updateFromSelection);
       } catch (error) {
-        // Игнорируем ошибки при очистке
-        console.warn('Ошибка при очистке подписок canvas:', error);
+        // Игнорируем ошибки при очистке (это нормально при unmount)
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('Ошибка при очистке подписок canvas:', error);
+        }
       }
     };
   }, [canvas]);
