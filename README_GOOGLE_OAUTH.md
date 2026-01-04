@@ -119,6 +119,20 @@ Google OAuth **НЕ настроен** — кнопка "Регистрация 
 3. Кнопка "Регистрация через Google" **отображается** ✅
 4. При нажатии открывается окно Google OAuth ✅
 
+### Быстрая диагностика (рекомендую, если что-то не работает)
+
+Откройте в браузере:
+- `/api/auth/providers` — показывает, какие провайдеры реально видит NextAuth
+- `/api/auth/health` — быстрый статус env-настроек (без секретов)
+
+#### Что смотреть в `/api/auth/health`
+- `oauth.google.configured`:
+  - `true` → переменные `GOOGLE_CLIENT_ID` и `GOOGLE_CLIENT_SECRET` заданы
+  - `false` → провайдер Google не включится и кнопка будет скрыта
+- `oauth.google.callbackUrl`:
+  - этот URL должен **1 в 1** быть добавлен в Google Console → **Authorized redirect URIs**
+  - если не совпадает → будет ошибка `redirect_uri_mismatch`
+
 ## ❓ Часто задаваемые вопросы
 
 **Q: Нужно ли настраивать Google OAuth?**  

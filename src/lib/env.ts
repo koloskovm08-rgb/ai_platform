@@ -19,6 +19,12 @@ const envSchema = z.object({
   NEXTAUTH_SECRET: z.string().min(32, 'NEXTAUTH_SECRET должен быть минимум 32 символа').optional(),
   AUTH_SECRET: z.string().min(32, 'AUTH_SECRET должен быть минимум 32 символа').optional(),
   
+  // OAuth providers (optional)
+  GOOGLE_CLIENT_ID: z.string().optional(),
+  GOOGLE_CLIENT_SECRET: z.string().optional(),
+  VK_CLIENT_ID: z.string().optional(),
+  VK_CLIENT_SECRET: z.string().optional(),
+  
   // AI Services
   OPENAI_API_KEY: z.string().min(1, 'OPENAI_API_KEY обязателен').optional(),
   REPLICATE_API_TOKEN: z.string().min(1, 'REPLICATE_API_TOKEN обязателен').optional(),

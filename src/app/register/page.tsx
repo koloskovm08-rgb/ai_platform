@@ -40,6 +40,12 @@ export default function RegisterPage() {
   const [isGoogleAvailable, setIsGoogleAvailable] = React.useState<boolean | null>(null);
   const [isVkLoading, setIsVkLoading] = React.useState(false);
   const [isVkAvailable, setIsVkAvailable] = React.useState<boolean | null>(null);
+  
+  // Провайдеры считаем "проверенными", когда оба значения уже не null
+  const providersChecked = isGoogleAvailable !== null && isVkAvailable !== null;
+  const googleEnabled = isGoogleAvailable === true;
+  const vkEnabled = isVkAvailable === true;
+  const showOAuthSection = providersChecked && (googleEnabled || vkEnabled);
 
   const {
     register,
@@ -124,7 +130,7 @@ export default function RegisterPage() {
 
   const handleGoogleSignIn = async () => {
     // Проверяем доступность провайдера перед попыткой входа
-    if (isGoogleAvailable === false) {
+    if (isGoogleAvailable !== true) {
       setError('Google OAuth не настроен. Пожалуйста, используйте регистрацию по email.');
       return;
     }
@@ -194,7 +200,7 @@ export default function RegisterPage() {
 
   const handleVkSignIn = async () => {
     // Проверяем доступность провайдера перед попыткой входа
-    if (isVkAvailable === false) {
+    if (isVkAvailable !== true) {
       setError('VK OAuth не настроен. Пожалуйста, используйте регистрацию по email.');
       return;
     }
@@ -340,7 +346,7 @@ export default function RegisterPage() {
             <Button
               type="submit"
               className="w-full"
-              disabled={isLoading || isGoogleLoading}
+              disabled={isLoading || isGoogleLoading || isVkLoading}
             >
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Зарегистрироваться
@@ -348,7 +354,7 @@ export default function RegisterPage() {
           </form>
 
           {/* Показываем OAuth провайдеры только если хотя бы один доступен */}
-          {(isGoogleAvailable !== false || isVkAvailable !== false) && (
+          {showOAuthSection && (
             <>
               <div className="relative my-6">
                 <div className="absolute inset-0 flex items-center">
@@ -362,13 +368,13 @@ export default function RegisterPage() {
               </div>
 
               <div className="space-y-3">
-                {isGoogleAvailable !== false && (
+                {googleEnabled && (
                   <Button
                     type="button"
                     variant="outline"
                     className="w-full"
                     onClick={handleGoogleSignIn}
-                    disabled={isLoading || isGoogleLoading || isVkLoading || isGoogleAvailable === null}
+                    disabled={isLoading || isGoogleLoading || isVkLoading}
                   >
                     {isGoogleLoading && (
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -392,13 +398,13 @@ export default function RegisterPage() {
                   </Button>
                 )}
 
-                {isVkAvailable !== false && (
+                {vkEnabled && (
                   <Button
                     type="button"
                     variant="outline"
                     className="w-full"
                     onClick={handleVkSignIn}
-                    disabled={isLoading || isGoogleLoading || isVkLoading || isVkAvailable === null}
+                    disabled={isLoading || isGoogleLoading || isVkLoading}
                   >
                     {isVkLoading && (
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
