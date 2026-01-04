@@ -153,57 +153,12 @@ function LoginForm() {
     setError(null);
 
     try {
-      // В NextAuth v5 для OAuth провайдеров нужно использовать прямой редирект
-      const result = await signIn('google', { 
+      // В NextAuth v5 для OAuth провайдеров используем автоматический редирект
+      await signIn('google', { 
         callbackUrl: '/',
-        redirect: false, // Не делаем автоматический редирект, делаем вручную
       });
-      
-      // Проверяем результат
-      if (!result) {
-        console.error('Google sign in: no result returned');
-        setError('Google OAuth не настроен. Обратитесь к администратору.');
-        setIsGoogleLoading(false);
-        return;
-      }
-      
-      // Если результат содержит ошибку
-      if (result.error) {
-        console.error('Google sign in error:', result.error);
-        // Более детальные сообщения об ошибках
-        const errorMessages: Record<string, string> = {
-          Configuration: 'Ошибка конфигурации Google OAuth. Пожалуйста, используйте вход по email.',
-          AccessDenied: 'Доступ запрещен. Вы отклонили доступ к своему Google аккаунту.',
-          OAuthSignin: 'Ошибка входа через Google. Попробуйте позже или используйте вход по email.',
-          OAuthCallback: 'Ошибка обработки ответа от Google. Попробуйте еще раз.',
-          OAuthCreateAccount: 'Не удалось создать аккаунт через Google. Попробуйте регистрацию по email.',
-          Callback: 'Ошибка обработки ответа от Google. Попробуйте еще раз.',
-          Default: 'Произошла ошибка при входе через Google. Попробуйте еще раз.',
-        };
-        setError(errorMessages[result.error] || errorMessages.Default);
-        setIsGoogleLoading(false);
-        return;
-      }
-      
-      // Если есть URL для редиректа (OAuth flow)
-      if (result.url) {
-        window.location.href = result.url;
-        // Не сбрасываем loading, так как происходит редирект
-        return;
-      }
-      
-      // Если нет URL и нет ошибки, но результат ok: false
-      if (result.ok === false) {
-        console.error('Google sign in: signIn returned ok: false');
-        setError('Google OAuth не настроен или провайдер недоступен. Проверьте настройки OAuth.');
-        setIsGoogleLoading(false);
-        return;
-      }
-      
-      // Если нет URL, значит что-то пошло не так
-      console.error('Google sign in: no redirect URL returned', result);
-      setError('Не удалось начать процесс входа через Google. Проверьте настройки OAuth (GOOGLE_CLIENT_ID и GOOGLE_CLIENT_SECRET в .env.local).');
-      setIsGoogleLoading(false);
+      // Если дошли сюда, значит редирект не произошёл
+      return;
     } catch (error) {
       console.error('Google sign in error:', error);
       const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка';
