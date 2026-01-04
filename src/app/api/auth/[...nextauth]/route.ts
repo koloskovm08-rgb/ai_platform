@@ -28,7 +28,6 @@ async function handleRequest(
         status: response.status,
         statusText: response.statusText,
         pathname,
-        isGoogleProvider,
         body: responseText.substring(0, 500), // Первые 500 символов
       });
     }
